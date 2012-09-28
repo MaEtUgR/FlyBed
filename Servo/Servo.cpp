@@ -2,9 +2,12 @@
 #include "mbed.h"
 
 Servo::Servo(PinName Pin) : ServoPin(Pin) {
+}
+
+void Servo::initialize() {
     // initialize ESC
     Enable(2000,20000);   // full throttle
-    wait(2);    // for 2 secs
+    wait(0.01);    // for 2 secs
     SetPosition(1000);    // low throttle
 }
 

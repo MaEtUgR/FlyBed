@@ -39,10 +39,10 @@
 
 typedef char byte;
 
-class Gyro
+class L3G4200D
 {
     public:            
-        Gyro(PinName sda, PinName scl); // constructor, uses i2c
+        L3G4200D(PinName sda, PinName scl); // constructor, uses i2c
         void read(int g[3]); // read all axis to array
         int readTemp(); // read temperature from sensor
         

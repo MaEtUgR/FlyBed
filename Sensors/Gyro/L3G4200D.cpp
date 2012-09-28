@@ -5,7 +5,7 @@
 #define L3G4200D_I2C_ADDRESS 0xD0
 
 
-Gyro::Gyro(PinName sda, PinName scl):
+L3G4200D::L3G4200D(PinName sda, PinName scl):
     i2c(sda, scl)
 {
     i2c.frequency(400000);
@@ -32,7 +32,7 @@ Gyro::Gyro(PinName sda, PinName scl):
 }
 
 // Writes a gyro register
-void Gyro::writeReg(byte reg, byte value)
+void L3G4200D::writeReg(byte reg, byte value)
 {
     data[0] = reg;
     data[1] = value;
@@ -41,7 +41,7 @@ void Gyro::writeReg(byte reg, byte value)
 }
 
 // Reads a gyro register
-byte Gyro::readReg(byte reg)
+byte L3G4200D::readReg(byte reg)
 {
     byte value = 0;
     
@@ -52,7 +52,7 @@ byte Gyro::readReg(byte reg)
 }
 
 // Reads the 3 gyro channels and stores them in vector g
-void Gyro::read(int g[3])
+void L3G4200D::read(int g[3])
 {
     // assert the MSB of the address to get the gyro 
     // to do slave-transmit subaddress updating.
@@ -77,7 +77,7 @@ void Gyro::read(int g[3])
 }
 
 // Reads the gyros Temperature
-int Gyro::readTemp()
+int L3G4200D::readTemp()
 {
     return (short) readReg(L3G4200D_OUT_TEMP);
 }

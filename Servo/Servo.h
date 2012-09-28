@@ -57,6 +57,9 @@ public:
     
     //operator for confortable positioning
     void operator=(int position);
+    
+    // initialize ESC
+    void initialize();
 
 private:
     void StartPulse();

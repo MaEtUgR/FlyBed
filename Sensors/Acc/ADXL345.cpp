@@ -1,57 +1,5 @@
-/**
- * @author Peter Swanson
- * A personal note from me: Jesus Christ has changed my life so much it blows my mind. I say this because
- *                  today, religion is thought of as something that you do or believe and has about as
- *                  little impact on a person as their political stance. But for me, God gives me daily
- *                  strength and has filled my life with the satisfaction that I could never find in any
- *                  of the other things that I once looked for it in. 
- * If your interested, heres verse that changed my life:
- *      Rom 8:1-3: "Therefore, there is now no condemnation for those who are in Christ Jesus,
- *                  because through Christ Jesus, the law of the Spirit who gives life has set
- *                  me free from the law of sin (which brings...) and death. For what the law 
- *                  was powerless to do in that it was weakened by the flesh, God did by sending
- *                  His own Son in the likeness of sinful flesh to be a sin offering. And so He
- *                  condemned sin in the flesh in order that the righteous requirements of the 
- *                  (God's) law might be fully met in us, who live not according to the flesh
- *                  but according to the Spirit."
- *
- *  A special thanks to Ewout van Bekkum for all his patient help in developing this library!
- *
- * @section LICENSE
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * @section DESCRIPTION
- *
- * ADXL345, triple axis, I2C interface, accelerometer.
- *
- * Datasheet:
- *
- * http://www.analog.com/static/imported-files/data_sheets/ADXL345.pdf
- */  
- 
-/**
- * Includes
- */
 #include "ADXL345.h"
-
-//#include "mbed.h"
+#include "mbed.h"
 
 ADXL345::ADXL345(PinName sda, PinName scl) : i2c_(sda, scl) {
 
@@ -85,6 +33,13 @@ ADXL345::ADXL345(PinName sda, PinName scl) : i2c_(sda, scl) {
     z[0] = ADXL345_OFSZ_REG ;
     z[1] = 0xFE; 
  i2c_.write( ADXL345_WRITE , z, 2);
+ 
+ // MY INITIALISATION -------------------------------------------------------
+ 
+ setPowerControl(0x00);
+ setDataFormatControl(0x0B);
+ setDataRate(ADXL345_3200HZ);
+ setPowerControl(MeasurementMode);
 }
 
 
