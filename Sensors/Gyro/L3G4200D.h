@@ -1,7 +1,7 @@
 // based on http://mbed.org/users/shimniok/code/L3G4200D/
 
-#ifndef __L3G4200D_H
-#define __L3G4200D_H
+#ifndef L3G4200D_H
+#define L3G4200D_H
 
 #include "mbed.h"
 
@@ -43,11 +43,11 @@ class L3G4200D
 {
     public:            
         L3G4200D(PinName sda, PinName scl); // constructor, uses i2c
-        void read(int g[3]); // read all axis to array
+        void read(float g[3]); // read all axis to array
         int readTemp(); // read temperature from sensor
         
     private:
-        byte data[6]; // 8-Bit pieces of axis data
+        float offset[3]; // offset that's subtracted from every measurement
         I2C i2c; // i2c object to communicate
         void writeReg(byte reg, byte value); // write one single register to sensor
         byte readReg(byte reg); // read one single register from sensor

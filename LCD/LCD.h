@@ -2,8 +2,8 @@
  * Copyright (c) 2007-2010, hb9gaa
  */
 
-#ifndef __LCD_H
-#define __LCD_H
+#ifndef LCD_H
+#define LCD_H
 
 #include "mbed.h"
 

@@ -5,17 +5,17 @@
 #define L3G4200D_I2C_ADDRESS 0xD0
 
 
-L3G4200D::L3G4200D(PinName sda, PinName scl):
-    i2c(sda, scl)
+L3G4200D::L3G4200D(PinName sda, PinName scl) : i2c(sda, scl)
 {
     i2c.frequency(400000);
     // Turns on the L3G4200D's gyro and places it in normal mode.
     // 0x0F = 0b00001111
     // Normal power mode, all axes enabled
     
-    writeReg(L3G4200D_CTRL_REG2, 0x05); // Filter steuern
+    //writeReg(L3G4200D_CTRL_REG2, 0x05); // control filter
+    writeReg(L3G4200D_CTRL_REG2, 0x00); // highpass filter disabled
     writeReg(L3G4200D_CTRL_REG3, 0x00);
-    writeReg(L3G4200D_CTRL_REG4, 0x20); // Genauigkeit 2000 dps
+    writeReg(L3G4200D_CTRL_REG4, 0x20); // acuracy 2000 dps
     
     writeReg(L3G4200D_REFERENCE, 0x00);
     //writeReg(L3G4200D_STATUS_REG, 0x0F);
@@ -26,18 +26,39 @@ L3G4200D::L3G4200D(PinName sda, PinName scl):
     writeReg(L3G4200D_INT1_THS_ZH, 0x2C);
     writeReg(L3G4200D_INT1_THS_ZL, 0xA4);
     //writeReg(L3G4200D_INT1_DURATION, 0x00);
-    writeReg(L3G4200D_CTRL_REG5, 0x12);  // Filter einschalten
+    //writeReg(L3G4200D_CTRL_REG5, 0x12);  // Filter einschalten
+    //writeReg(L3G4200D_CTRL_REG5, 0x01);  // hochpass Filter einschalten
+    writeReg(L3G4200D_CTRL_REG5, 0x00);  // Filter ausschalten
     
     writeReg(L3G4200D_CTRL_REG1, 0x0F); // Gogo
+    
+    // calibrate gyro with an average of count samples (result to offset)
+    #define count 50
+    for (int j = 0; j < 3; j++)
+            offset[j] = 0;
+            
+    float Gyro_calib[3] = {0,0,0}; // temporary to sum up
+    float Gyro_data[3];
+    
+    for (int i = 0; i < count; i++) {
+        read(Gyro_data);
+        for (int j = 0; j < 3; j++)
+            Gyro_calib[j] += Gyro_data[j];
+        wait(0.001); // maybe less or no wait !!
+    }
+    
+    for (int j = 0; j < 3; j++)
+        offset[j] = Gyro_calib[j]/count;
 }
 
 // Writes a gyro register
 void L3G4200D::writeReg(byte reg, byte value)
 {
-    data[0] = reg;
-    data[1] = value;
+    byte buffer[2];
+    buffer[0] = reg;
+    buffer[1] = value;
     
-    i2c.write(L3G4200D_I2C_ADDRESS, data, 2);
+    i2c.write(L3G4200D_I2C_ADDRESS, buffer, 2);
 }
 
 // Reads a gyro register
@@ -52,28 +73,33 @@ byte L3G4200D::readReg(byte reg)
 }
 
 // Reads the 3 gyro channels and stores them in vector g
-void L3G4200D::read(int g[3])
+void L3G4200D::read(float g[3])
 {
+    byte buffer[6]; // 8-Bit pieces of axis data
     // assert the MSB of the address to get the gyro 
     // to do slave-transmit subaddress updating.
-    data[0] = L3G4200D_OUT_X_L | (1 << 7);
-    i2c.write(L3G4200D_I2C_ADDRESS, data, 1); 
+    buffer[0] = L3G4200D_OUT_X_L | (1 << 7);
+    i2c.write(L3G4200D_I2C_ADDRESS, buffer, 1); 
 
 //    Wire.requestFrom(GYR_ADDRESS, 6);
 //    while (Wire.available() < 6);
     
-    i2c.read(L3G4200D_I2C_ADDRESS, data, 6); 
+    i2c.read(L3G4200D_I2C_ADDRESS, buffer, 6); 
 
-    uint8_t xla = data[0];
-    uint8_t xha = data[1];
-    uint8_t yla = data[2];
-    uint8_t yha = data[3];
-    uint8_t zla = data[4];
-    uint8_t zha = data[5];
+    uint8_t xla = buffer[0];
+    uint8_t xha = buffer[1];
+    uint8_t yla = buffer[2];
+    uint8_t yha = buffer[3];
+    uint8_t zla = buffer[4];
+    uint8_t zha = buffer[5];
 
     g[0] = (short) (xha << 8 | xla);
     g[1] = (short) (yha << 8 | yla);
     g[2] = (short) (zha << 8 | zla);
+    
+    //with offset of calibration
+    for (int j = 0; j < 3; j++)
+            g[j] -= offset[j];
 }
 
 // Reads the gyros Temperature
