@@ -32,42 +32,27 @@ int main() {
     
     //Motor.initialize();
     
-    float angle = 0;//TEMP
-    float bangle = 0;
-    float drift = 0;
-    //float drift = 0;
+    float angle[3] = {0,0,0};
+    float Acc_angle[2] = {0,0};
+    
     GlobalTimer.start();
     while(1) {
-        
-        
-        
         Gyro.read(Gyro_data);
         Acc.read(Acc_data);
 
         // Acc data angle
         //float Acc_abs = sqrt(pow((float)Acc_data[0],2) + pow((float)Acc_data[1],2) + pow((float)Acc_data[2],2));
         //float Acc_angle = Rad2Deg * acos((float)Acc_data[2]/Acc_abs);
-        float Acc_angle = Rad2Deg * atan2((float)Acc_data[1], (float)Acc_data[2]);
-        
-        //angle = (0.98)*(angle + Gyro_data[0] * 0.1) + (0.02)*(Acc_angle);
-        
-        float messfrequenz = 0.01;
-        float geschwindigkeit = Gyro_data[0] - drift;
-        //drift += (geschwindigkeit * messfrequenz * 0.3);
-        angle += (geschwindigkeit * messfrequenz);
-        angle += ((Acc_angle - angle) * messfrequenz * 0.1);
-        
-        //for (int i= 0; i < 3;i++)
-            //drift[i] += (Gyro_data[i]-drift[i])* 0.1;
-            
-        //for (int i= 0; i < 3;i++)
-            //Gyro_angle[i] += (Gyro_data[i]/*-drift[i]*/);
+        Acc_angle[0] = Rad2Deg * atan2((float)Acc_data[1], (float)Acc_data[2]);
+        Acc_angle[1] = -Rad2Deg * atan2((float)Acc_data[0], (float)Acc_data[2]);
         
         //dt berechnen
         dt = GlobalTimer.read_us() - time_loop;
         time_loop = GlobalTimer.read_us();
         
-        bangle += (Acc_angle - angle)/50 + Gyro_data[0] * 0.001; //dt/10000000.0-----------------------------------------
+        angle[0] += (Acc_angle[0] - angle[0])/50 + Gyro_data[0] *dt/15000000.0;
+        angle[1] += (Acc_angle[1] - angle[1])/50 + Gyro_data[1] *dt/15000000.0;
+        angle[2] += /*(Acc_angle[1] - angle[1])/50 +*/ Gyro_data[2] *dt/15000000.0;
         //Gyro_angle[0] += (Gyro_data[0]) * 0.01;
         LCD.locate(0,0);
         //LCD.printf("%2.1f  %2.1f %2.1f", Gyro_data[0],Gyro_data[1],Gyro_data[2]);
@@ -77,7 +62,7 @@ int main() {
         LCD.locate(1,0);
         //LCD.printf("%d %d %d %2.1f  ", Acc_data[0],Acc_data[1],Acc_data[2]);
         //LCD.printf("%2.1f %2.1f %2.2f %2.1f", Acc_angle,Acc_angle,dt/10000.0, angle);
-        LCD.printf("%2.1f %2.1f %2.1f   ",Acc_angle , bangle, angle);
+        LCD.printf("%2.1f %2.1f %2.1f   ", angle[0], angle[1], angle[2]);
         
         //Motor = 1000 + abs(Acc_data[1]); // Motorwert anpassen
         
@@ -91,7 +76,7 @@ int main() {
             ledset += 2;
         else
             ledset += 4;
-        wait(0.1);
+        //wait(0.1);
         LEDs = ledset;
         
         //LEDs.rollnext();
