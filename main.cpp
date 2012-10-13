@@ -1,5 +1,4 @@
 #include "mbed.h" // Standar Library
-#include "LCD.h" // Display
 #include "LED.h" // LEDs
 #include "L3G4200D.h" // Gyro (Gyroscope)
 #include "ADXL345.h" // Acc (Accelerometer)
@@ -12,26 +11,24 @@ Timer GlobalTimer;
 
 // initialisation of hardware
 LED         LEDs;
-TextLCD     LCD(p5, p6, p7, p8, p9, p10, p11, TextLCD::LCD16x2); // RS, RW, E, D0, D1, D2, D3, Typ
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27, GlobalTimer);
 BMP085      Alt(p28, p27);
-//Servo     Motor(p12);
+Servo     Motor(p20);
 
-struct terminal       pc(USBTX, USBRX);        //Achtung: Treiber auf PC fuer Serial-mbed installieren.
-                                            //hier herunterladen https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe
+terminal       pc(USBTX, USBRX);        //Achtung: Treiber auf PC fuer Serial-mbed installieren. hier herunterladen https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe
 
 #define PI             3.1415926535897932384626433832795
 #define Rad2Deg        57.295779513082320876798154814105
 
 int main() {
-    // LCD/LED init
-    LCD.cls(); // Display l�schen
-    LCD.printf("Flybed v0.2");
+    pc.baud(57600);
+    pc.cls();
+    // init screen
+    pc.locate(10,5);
+    pc.printf("Flybed v0.2");
     LEDs.roll(2);
-    
-    pc.baud(57600); 
     
     // variables for loop
     float           Gyro_data[3];
@@ -43,7 +40,7 @@ int main() {
     float Comp_angle = 0;
     float tempangle = 0;
     
-    //Motor.initialize();
+    Motor.initialize();
     //Kompass kalibrieren  --> Problem fremde Magnetfelder!
     //Comp.AutoCalibration = 1;
     short MagRawMin[3]= {-400, -400, -400};     //Gespeicherte Werte verwenden
@@ -79,17 +76,16 @@ int main() {
         angle[2] += (Comp_angle - angle[2])/50 - Gyro_data[2] *dt/15000000.0;
         tempangle -= Gyro_data[2] *dt/15000000.0;
         
-        int i =345;
         // LCD output
         pc.locate(10,5); // first line
         pc.printf("Y:%2.1f %2.1fm   ", angle[2], Alt.CalcAltitude(Alt.Pressure));
         //LCD.printf("%2.1f %2.1f %2.1f   ", Comp.RawMag[0], Comp.RawMag[1], Comp.RawMag[2]);
         pc.locate(10,8); // second line
-        pc.printf("R:%2.1f P:%2.1f  ", angle[0], angle[1]);
+        pc.printf("Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", angle[0], angle[1], angle[2]);
         //LCD.printf("R:%2.1f P:%2.1f  ", Comp_angle, tempangle);
         //LCD.printf("%2.1f %2.1f %2.1f   ", Comp.Mag[0], Comp.Mag[1], Comp.Mag[2]);
         
-        //Motor = 1000 + abs(Acc_data[1]); // set new motor speed
+        Motor = 1000 + 5*abs(angle[1]); // set new motor speed
         
         //LED hin und her
         int ledset = 0;
