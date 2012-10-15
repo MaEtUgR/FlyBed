@@ -35,8 +35,7 @@ void LED::roll(int times = 1) {
 void LED::rollnext() {
     if (roller >= 4)
         roller = 0;
-    else
-        roller++;
+    roller++;
     tilt(roller);
 }
 

@@ -1,8 +1,10 @@
 #include "PC.h"
 #include "mbed.h"
 
-PC::PC(PinName tx, PinName rx) : Serial(tx, rx) 
+PC::PC(PinName tx, PinName rx, int baudrate) : Serial(tx, rx) 
 {
+    baud(baudrate);
+    cls();
 }
 
 

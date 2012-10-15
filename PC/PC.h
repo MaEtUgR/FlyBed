@@ -6,7 +6,7 @@
 class PC : public Serial 
 {
     public:
-        PC(PinName tx, PinName rx);
+        PC(PinName tx, PinName rx, int baud);
         void cls();
         void locate(int column, int row);
 };
