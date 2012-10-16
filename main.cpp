@@ -57,7 +57,7 @@ void get_Data()
     angle[0] += (Acc_angle[0] - angle[0])/50 + Gyro_data[0] *dt/15000000.0;
     angle[1] += (Acc_angle[1] - angle[1])/50 + Gyro_data[1] *dt/15000000.0;
     tempangle += (Comp_angle - tempangle)/50 - Gyro_data[2] *dt/15000000.0;
-    angle[2] -= Gyro_data[2] *dt/15000000.0;
+    angle[2] -= Gyro_data[2] *dt/15000000.0; // gyro only here
     
     // Read RC data
     //RC[0].read() // TODO: RC daten lesen und einberechnen!
@@ -72,20 +72,11 @@ int main() {
     pc.printf("Flybed v0.2");
     LEDs.roll(2);
     
-    //Kompass kalibrieren  --> Problem fremde Magnetfelder!
-    //Comp.AutoCalibration = 1;
-    short MagRawMin[3]= {-400, -400, -400};     //Gespeicherte Werte verwenden
-    short MagRawMax[3]= {400, 400, 400};
-    Comp.Calibrate(MagRawMin, MagRawMax);
-    //Comp.Calibrate(20);
-    
-    Alt.oss = 0; //Oversampling des Barometers setzen
-    
+    // Start!
     GlobalTimer.start();
     Datagetter.attach(&get_Data, 0.02);     // start to get data all 10ms
     while(1) {
-        // PC output
-        pc.locate(10,5);
+        pc.locate(10,5); // PC output
         pc.printf("dt:%dms  %6.1fm   ", dt/1000, Alt.CalcAltitude(Alt.Pressure));
         pc.locate(10,8);
         pc.printf("Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", angle[0], angle[1], angle[2]);

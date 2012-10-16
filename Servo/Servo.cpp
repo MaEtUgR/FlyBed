@@ -2,13 +2,14 @@
 #include "mbed.h"
 
 Servo::Servo(PinName Pin) : ServoPin(Pin) {
+    initialize(); // TODO: Works?
 }
 
 void Servo::initialize() {
     // initialize ESC
-    Enable(2000,20000);   // full throttle
-    wait(0.01);    // for 0.01 secs
-    SetPosition(1000);    // low throttle
+    Enable(2000,20000); // full throttle
+    wait(0.01);         // for 0.01 secs
+    SetPosition(1000);  // low throttle
 }
 
 void Servo::SetPosition(int Pos) {
@@ -21,6 +22,9 @@ void Servo::StartPulse() {
 }
 
 void Servo::EndPulse() {
+    // my change
+    PulseStop.detach();
+    // my change
     ServoPin = 0;
 }
 

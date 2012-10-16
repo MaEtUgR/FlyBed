@@ -13,6 +13,9 @@
 BMP085::BMP085(PinName sda, PinName scl) : i2c_(sda, scl)
     {
     Init();
+    // MYINIT -------
+    oss = 0; //Oversampling des Barometers setzen
+    // MYINIT -------
     }
     
 

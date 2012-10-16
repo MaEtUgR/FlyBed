@@ -8,6 +8,14 @@
 HMC5883::HMC5883(PinName sda, PinName scl, Timer & GlobalTime_) :  i2c_(sda, scl),  GlobalTime(GlobalTime_)
     {
     Init();
+    // MYINIT ----------
+    //Kompass kalibrieren  --> Problem fremde Magnetfelder!
+    //AutoCalibration = 1;
+    short MagRawMin[3]= {-400, -400, -400};     //Gespeicherte Werte verwenden
+    short MagRawMax[3]= {400, 400, 400};
+    Calibrate(MagRawMin, MagRawMax);
+    //Calibrate(20);
+    // MYINIT ----------
     }
 
 void HMC5883::Init()
