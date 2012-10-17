@@ -45,13 +45,19 @@ ADXL345::ADXL345(PinName sda, PinName scl) : i2c(sda, scl) {
     writeReg(ADXL345_POWER_CTL_REG, 0x08); // set mode
 }
 
-void ADXL345::read(int a[3]){
+void ADXL345::read(){
     char buffer[6];    
     readMultiReg(ADXL345_DATAX0_REG, buffer, 6);
     
-    a[0] = (short) ((int)buffer[1] << 8 | (int)buffer[0]);
-    a[1] = (short) ((int)buffer[3] << 8 | (int)buffer[2]);
-    a[2] = (short) ((int)buffer[5] << 8 | (int)buffer[4]);
+    data[0] = (short) ((int)buffer[1] << 8 | (int)buffer[0]);
+    data[1] = (short) ((int)buffer[3] << 8 | (int)buffer[2]);
+    data[2] = (short) ((int)buffer[5] << 8 | (int)buffer[4]);
+    
+    // calculate the angles for roll and pitch (0,1)
+    float R = sqrt(pow((float)data[0],2) + pow((float)data[1],2) + pow((float)data[2],2));
+    angle[0] = -(Rad2Deg * acos((float)data[1] / R)-90);
+    angle[1] =   Rad2Deg * acos((float)data[0] / R)-90;
+    angle[2] =   Rad2Deg * acos((float)data[2] / R);
 }
 
 int ADXL345::writeReg(char address, char data){ 

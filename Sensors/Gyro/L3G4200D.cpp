@@ -38,12 +38,11 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : i2c(sda, scl)
             offset[j] = 0;
             
     float Gyro_calib[3] = {0,0,0}; // temporary to sum up
-    float Gyro_data[3];
     
     for (int i = 0; i < count; i++) {
-        read(Gyro_data);
+        read();
         for (int j = 0; j < 3; j++)
-            Gyro_calib[j] += Gyro_data[j];
+            Gyro_calib[j] += data[j];
         wait(0.001); // maybe less or no wait !!
     }
     
@@ -73,7 +72,7 @@ byte L3G4200D::readReg(byte reg)
 }
 
 // Reads the 3 gyro channels and stores them in vector g
-void L3G4200D::read(float g[3])
+void L3G4200D::read()
 {
     byte buffer[6]; // 8-Bit pieces of axis data
     // assert the MSB of the address to get the gyro 
@@ -93,13 +92,13 @@ void L3G4200D::read(float g[3])
     uint8_t zla = buffer[4];
     uint8_t zha = buffer[5];
 
-    g[0] = (short) (xha << 8 | xla);
-    g[1] = (short) (yha << 8 | yla);
-    g[2] = (short) (zha << 8 | zla);
+    data[0] = (short) (xha << 8 | xla);
+    data[1] = (short) (yha << 8 | yla);
+    data[2] = (short) (zha << 8 | zla);
     
     //with offset of calibration
     for (int j = 0; j < 3; j++)
-            g[j] -= offset[j];
+            data[j] -= offset[j];
 }
 
 // Reads the gyros Temperature

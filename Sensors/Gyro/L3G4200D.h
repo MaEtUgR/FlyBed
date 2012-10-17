@@ -43,8 +43,9 @@ class L3G4200D
 {
     public:            
         L3G4200D(PinName sda, PinName scl); // constructor, uses i2c
-        void read(float g[3]); // read all axis to array
+        void read(); // read all axis to array
         int readTemp(); // read temperature from sensor
+        float data[3]; // where the measured data is saved
         
     private:
         float offset[3]; // offset that's subtracted from every measurement
