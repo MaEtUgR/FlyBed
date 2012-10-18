@@ -78,10 +78,10 @@ class ADXL345
        
     private:
         I2C i2c; // i2c object to communicate
-        int writeReg(byte reg, byte value); // write one single register to sensor
+        void writeReg(byte reg, byte value); // write one single register to sensor
         byte readReg(byte reg); // read one single register from sensor
         void readMultiReg(char startAddress, char* ptr_output, int size); // read multiple regs
-        int setDataRate(char rate); // data rate configuration (not only a reg to write)
+        void setDataRate(char rate); // data rate configuration (not only a reg to write)
 };
 
 #endif

@@ -23,7 +23,7 @@ LED         LEDs;
 PC          pc(USBTX, USBRX, 57600);
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
-HMC5883     Comp(p28, p27, GlobalTimer);
+HMC5883     Comp(p28, p27);
 BMP085      Alt(p28, p27);
 RC_Channel  RC[] = {(p10), (p11), (p12), (p13)}; // noooo p19/p20!!!!
 Servo       Motor[] = {(p15), (p16), (p17), (p18)};
@@ -31,7 +31,7 @@ Servo       Motor[] = {(p15), (p16), (p17), (p18)};
 // variables for loop
 unsigned long   dt = 0;
 unsigned long   time_loop = 0;
-float           angle[3] = {0,0,0}; // angle of calculated situation
+float           angle[3] = {0,0,0}; // angle 0: x,roll / 1: y,pitch / 2: z,yaw
 float           Comp_angle = 0;
 float           tempangle = 0;
 int             Motorvalue[3];
@@ -43,11 +43,11 @@ void get_Data()
     // read data from sensors
     Gyro.read();
     Acc.read();
-    Comp.Update();
+    Comp.read();
     Alt.Update();
 
     //calculate angle for yaw from compass
-    Comp_angle = Comp.getAngle(Comp.Mag[0], Comp.Mag[1]);
+    //Comp_angle = Comp.getAngle(Comp.Mag[0], Comp.Mag[1]);
     
     // meassure dt
     dt = GlobalTimer.read_us() - time_loop; // time in us since last loop
@@ -63,7 +63,7 @@ void get_Data()
     controller.setProcessValue(RC[3 -1].read());
     for (int j = 0; j < 4; j++)
         Motorvalue[j] = controller.compute(); // throttle
-        
+    
     for (int j = 0; j < 4; j++)
         Motor[j] = 1000 + 5*abs(angle[1]);//Motorvalue[j]; // set new motorspeeds
     pid.setProcessValue(angle[0]);
@@ -99,11 +99,15 @@ int main() {
         pc.locate(10,10);
         pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp_angle, tempangle);
         pc.locate(10,12);
-        pc.printf("Comp_Raw: %6.1f %6.1f %6.1f   ", Comp.RawMag[0], Comp.RawMag[1], Comp.RawMag[2]);
+        pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.heading);
         pc.locate(10,13);
-        pc.printf("Comp_Mag: %6.1f %6.1f %6.1f   ", Comp.Mag[0], Comp.Mag[1], Comp.Mag[2]);
+        pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]);
         pc.locate(10,15);
         pc.printf("pidtester: %6.1f   RC: %d %d %d %d     ", pidtester, RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
+        pc.locate(10,18);
+        pc.printf("Max: %d %d %d     ", Comp.Max[0], Comp.Max[1], Comp.Max[2]);
+        pc.locate(10,19);
+        pc.printf("Min: %d %d %d     ", Comp.Min[0], Comp.Min[1], Comp.Min[2]);
         LEDs.rollnext();
     }
 }

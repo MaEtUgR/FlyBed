@@ -60,12 +60,11 @@ void ADXL345::read(){
     angle[2] =   Rad2Deg * acos((float)data[2] / R);
 }
 
-int ADXL345::writeReg(char address, char data){ 
-   int ack = 0;
+void ADXL345::writeReg(char address, char data){ 
    char tx[2];
    tx[0] = address;
    tx[1] = data;
-   return   ack | i2c.write(ADXL345_WRITE, tx, 2);   
+   i2c.write(ADXL345_WRITE, tx, 2);
 }
 
 char ADXL345::readReg(char address){   
@@ -81,12 +80,12 @@ void ADXL345::readMultiReg(char address, char* output, int size) {
     i2c.read(ADXL345_READ , output, size); //tell it where to store the data read
 }
 
-int ADXL345::setDataRate(char rate) {
+void ADXL345::setDataRate(char rate) {
     //Get the current register contents, so we don't clobber the power bit.
     char registerContents = readReg(ADXL345_BW_RATE_REG);
 
     registerContents &= 0x10;
     registerContents |= rate;
 
-    return writeReg(ADXL345_BW_RATE_REG, registerContents);
+    writeReg(ADXL345_BW_RATE_REG, registerContents);
 }
