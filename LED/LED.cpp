@@ -40,7 +40,19 @@ void LED::rollnext() {
 }
 
 void LED::tilt(int index) {
-    Led = Led^(1 << (index-1));
+    Led = Led ^ (1 << (index-1)); //XOR
+}
+
+void LED::set(int index) {
+    Led = Led | (1 << (index-1)); //OR
+}
+
+void LED::reset(int index) {
+    Led = Led & ~(1 << (index-1)); //OR
+}
+
+int LED::check(int index) {
+    return Led & (1 << (index-1));
 }
 
 void LED::operator=(int value) {

@@ -6,7 +6,8 @@ RC_Channel::RC_Channel(PinName mypin) : myinterrupt(mypin)
     time = -1; // start value to see if there was any value yet
     myinterrupt.rise(this, &RC_Channel::rise);
     myinterrupt.fall(this, &RC_Channel::fall);
-    timeoutchecker.attach(this, &RC_Channel::timeoutcheck, 1);
+    //timeoutchecker.attach(this, &RC_Channel::timeoutcheck, 1);
+    
 }
 
 int RC_Channel::read()
@@ -17,12 +18,16 @@ int RC_Channel::read()
 void RC_Channel::rise()
 {
     timer.start();
+    LEDs.set(2);
 }
 
 void RC_Channel::fall()
 {
     timer.stop();
-    time = timer.read_us();
+    LEDs.reset(2);
+    int tester = timer.read_us();
+    if(tester >= 1000 && tester <=2000)
+        time = tester;
     timer.reset();
     timer.start();
 }

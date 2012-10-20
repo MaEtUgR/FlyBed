@@ -20,20 +20,26 @@ class HMC5883
         float data[3];
         
         void read();
-        void writeReg(char address, char data);
-        void readMultiReg(char address, char* output, int size);
         
-        float scale[3]; //privatisieren
-        
-        float heading;
-        
+        void calibrate(int s);
         int Min[3];
         int Max[3];
+        float scale[3];
+        float offset[3];
+        LocalFileSystem local;
         
-        float   getAngle(float x, float y); //von Götti
-        
+        float get_angle();
+         
     private:
         I2C i2c;
+        
+        // raw data and function to measure it
+        int raw[3];
+        void readraw();
+        
+        // I2C functions
+        void writeReg(char address, char data);
+        void readMultiReg(char address, char* output, int size);
         
 };
 

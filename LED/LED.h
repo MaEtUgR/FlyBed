@@ -14,6 +14,9 @@ class LED {
         void roll(int times);
         void rollnext();
         void tilt(int index);
+        void set(int index);
+        void reset(int index);
+        int check(int index);
         void operator=(int value);
     
     private:
