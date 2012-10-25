@@ -3,6 +3,8 @@
 
 HMC5883::HMC5883(PinName sda, PinName scl) :  local("local"), i2c(sda, scl)
 {
+    i2c.frequency(400000); // zu testen!!
+    
     // load calibration values
     FILE *fp = fopen("/local/compass.txt", "r");
     for(int i = 0; i < 3; i++)

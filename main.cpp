@@ -1,24 +1,26 @@
 #include "mbed.h"       // Standard Library
 #include "LED.h"        // LEDs framework for blinking ;)
-#include "PC.h"         // Serial Port via USB for debugging in TeraTerm (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
+#include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
 #include "L3G4200D.h"   // Gyro (Gyroscope)
 #include "ADXL345.h"    // Acc (Accelerometer)
 #include "HMC5883.h"    // Comp (Compass)
 #include "BMP085.h"     // Alt (Altitude sensor)
 #include "RC_Channel.h" // RemoteControl Chnnels with PPM
 #include "Servo.h"      // Motor PPM
-#include "PID.h"        // PID Library from Aaron Berk
+#include "PID.h"        // PID Library by Aaron Berk
+#include "IntCtrl.h"    // Interrupt Control by Roland Elmiger
 
 #define PI              3.1415926535897932384626433832795
 #define Rad2Deg         57.295779513082320876798154814105
 #define RATE            0.02 // speed of Ticker/PID
 
-//#define COMPASSCALIBRATE
+//#define COMPASSCALIBRATE decomment if you want to calibrate the Compass on start
 
 Timer GlobalTimer; // global time to calculate processing speed
 Ticker Datagetter; // timecontrolled interrupt to get data form IMU and RC
 PID controller(1.0, 0.0, 0.0, RATE); // test PID controller for throttle
 PID pid(1.0, 1.0, 0.0, RATE); // test PID controller for throttle
+//PID P:3,0 bis 3,5 I:0,010 und 0,050 D:5 und 25 
 
 // initialisation of hardware
 LED         LEDs;
@@ -27,7 +29,7 @@ L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
 BMP085      Alt(p28, p27);
-RC_Channel  RC[] = {(p10), (p11), (p12), (p13)}; // noooo p19/p20!!!!
+RC_Channel  RC[] = {(p11), (p12), (p13), (p14)}; // noooo p19/p20!!!!
 Servo       Motor[] = {(p15), (p16), (p17), (p18)};
 
 // variables for loop
@@ -45,11 +47,21 @@ void get_Data()
 {
     time_read_sensors = GlobalTimer.read_us();
     
+    GPIO_IntDisable(0, 18, 2); // abschalten der Pins 11-14 mit Göttis library
+    GPIO_IntDisable(0, 17, 2);
+    GPIO_IntDisable(0, 16, 2);
+    GPIO_IntDisable(0, 15, 2);
+    //__disable_irq(); // test, deactivate all interrupts, I2C working?
     // read data from sensors
-    Gyro.read();
+    Gyro.read(); // einzeln testen! mit LEDs
     Acc.read();
     Comp.read();
-    //Alt.Update();
+    //Alt.Update(); TODO braucht zu lange zum auslesen!
+    //__enable_irq();
+    GPIO_IntEnable(0, 18, 2); // schaltet enable wirklich wieder ein?? änderungsbedarf??
+    GPIO_IntEnable(0, 17, 2);
+    GPIO_IntEnable(0, 16, 2);
+    GPIO_IntEnable(0, 15, 2);
     
     dt_read_sensors = GlobalTimer.read_us() - time_read_sensors;
     
