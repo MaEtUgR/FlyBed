@@ -16,18 +16,9 @@ class HMC5883
     public:
         HMC5883(PinName sda, PinName scl);
         
-        //my
         float data[3];
-        
         void read();
-        
         void calibrate(int s);
-        int Min[3];
-        int Max[3];
-        float scale[3];
-        float offset[3];
-        LocalFileSystem local;
-        
         float get_angle();
          
     private:
@@ -41,6 +32,12 @@ class HMC5883
         void writeReg(char address, char data);
         void readMultiReg(char address, char* output, int size);
         
+        // calibration parameters and their saving
+        int Min[3];
+        int Max[3];
+        float scale[3];
+        float offset[3];
+        LocalFileSystem local;
 };
 
 #endif

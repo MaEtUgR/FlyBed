@@ -4,13 +4,13 @@
 
 #include "mbed.h"
 
-class BMP085
+class BMP085_old
     {
     private:
         I2C i2c_;
         
     public:
-        BMP085(PinName sda, PinName scl);
+        BMP085_old(PinName sda, PinName scl);
     
         void    Update();
         float   Temperature;

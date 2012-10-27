@@ -1,6 +1,6 @@
 
 #include "mbed.h"
-#include "BMP085.h"
+#include "BMP085_old.h"
 
 //I2C Adresse
 #define BMP085_ADRESS 0xEE
@@ -10,7 +10,7 @@
 
 // Constructor
 // -----------------------------------------------
-BMP085::BMP085(PinName sda, PinName scl) : i2c_(sda, scl)
+BMP085_old::BMP085_old(PinName sda, PinName scl) : i2c_(sda, scl)
     {
     Init();
     // MYINIT -------
@@ -21,7 +21,7 @@ BMP085::BMP085(PinName sda, PinName scl) : i2c_(sda, scl)
 
 // Temperatur und Druck auslesen und berechnen
 // -----------------------------------------------
-void BMP085::Update () 
+void BMP085_old::Update () 
     {
     long P, UTemp, UPressure, X1, X2, X3, B3, B5, B6;
     unsigned long B4, B7;
@@ -72,7 +72,7 @@ void BMP085::Update ()
 
 // Hoehe u.M. berechnen  (Druck in hPa)
 // -----------------------------------------------
-float BMP085::CalcAltitude(float Press)
+float BMP085_old::CalcAltitude(float Press)
     {
     float A = Press/1013.25;
     float B = 1/5.25588;
@@ -86,7 +86,7 @@ float BMP085::CalcAltitude(float Press)
         
 // Drucksensor initialisieren  
 // -----------------------------------------------
-void BMP085::Init () 
+void BMP085_old::Init () 
     {
     AC1 = twi_readshort(BMP085_ADRESS, 0xaa);
     AC2 = twi_readshort(BMP085_ADRESS, 0xac);
@@ -103,7 +103,7 @@ void BMP085::Init ()
     
     
 // -----------------------------------------------
-unsigned short BMP085::twi_readshort (int id, int addr) {
+unsigned short BMP085_old::twi_readshort (int id, int addr) {
     unsigned short i;
 
     i2c_.start();
@@ -121,7 +121,7 @@ unsigned short BMP085::twi_readshort (int id, int addr) {
 
 
 // -----------------------------------------------
-unsigned long BMP085::twi_readlong (int id, int addr) {
+unsigned long BMP085_old::twi_readlong (int id, int addr) {
     unsigned long i;
 
     i2c_.start();
@@ -140,7 +140,7 @@ unsigned long BMP085::twi_readlong (int id, int addr) {
 
 
 // -----------------------------------------------
-void BMP085::twi_writechar (int id, int addr, int dat) {
+void BMP085_old::twi_writechar (int id, int addr, int dat) {
 
     i2c_.start();
     i2c_.write(id);

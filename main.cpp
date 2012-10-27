@@ -4,64 +4,64 @@
 #include "L3G4200D.h"   // Gyro (Gyroscope)
 #include "ADXL345.h"    // Acc (Accelerometer)
 #include "HMC5883.h"    // Comp (Compass)
-#include "BMP085.h"     // Alt (Altitude sensor)
+#include "BMP085_old.h"     // Alt (Altitude sensor)
 #include "RC_Channel.h" // RemoteControl Chnnels with PPM
 #include "Servo.h"      // Motor PPM
 #include "PID.h"        // PID Library by Aaron Berk
 #include "IntCtrl.h"    // Interrupt Control by Roland Elmiger
 
-#define PI              3.1415926535897932384626433832795
-#define Rad2Deg         57.295779513082320876798154814105
-#define RATE            0.02 // speed of Ticker/PID
+#define PI              3.1415926535897932384626433832795   // ratio of a circle's circumference to its diameter
+#define Rad2Deg         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
+#define RATE            0.0007                               // speed of the interrupt for Sensors and PID
 
-//#define COMPASSCALIBRATE decomment if you want to calibrate the Compass on start
+//#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 
-Timer GlobalTimer; // global time to calculate processing speed
-Ticker Datagetter; // timecontrolled interrupt to get data form IMU and RC
-PID controller(1.0, 0.0, 0.0, RATE); // test PID controller for throttle
-PID pid(1.0, 1.0, 0.0, RATE); // test PID controller for throttle
-//PID P:3,0 bis 3,5 I:0,010 und 0,050 D:5 und 25 
+Timer GlobalTimer;                      // global time to calculate processing speed
+Ticker Datagetter;                      // timecontrolled interrupt to get data form IMU and RC
 
-// initialisation of hardware
+// initialisation of hardware (see includes for more info)
 LED         LEDs;
 PC          pc(USBTX, USBRX, 57600);
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
-BMP085      Alt(p28, p27);
+BMP085_old      Alt(p28, p27);
 RC_Channel  RC[] = {(p11), (p12), (p13), (p14)}; // noooo p19/p20!!!!
 Servo       Motor[] = {(p15), (p16), (p17), (p18)};
 
-// variables for loop
-unsigned long   dt_get_data = 0;
+PID controller(1.0, 0.0, 0.0, RATE);  // test PID controller for throttle
+PID pid(1.0, 1.0, 0.0, RATE);         // test PID controller for throttle
+//PID P:3,0 bis 3,5 I:0,010 und 0,050 D:5 und 25 
+
+
+// global varibles
+unsigned long   dt_get_data = 0; // TODO: dt namen
 unsigned long   time_get_data = 0;
 unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
-float           angle[3] = {0,0,0}; // angle 0: x,roll / 1: y,pitch / 2: z,yaw
-float           tempangle = 0;
-int             Motorvalue[3];
-
+float           angle[3] = {0,0,0}; // calculated values of the position [0: x,roll | 1: y,pitch | 2: z,yaw]
+float           tempangle = 0; // temporärer winkel für yaw ohne kompass
 float pidtester;
 
-void get_Data()
+void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
 {
     time_read_sensors = GlobalTimer.read_us();
     
-    GPIO_IntDisable(0, 18, 2); // abschalten der Pins 11-14 mit Göttis library
+    // read data from sensors
+    /*GPIO_IntDisable(0, 18, 2); // abschalten der Pins 11-14 mit Göttis library
     GPIO_IntDisable(0, 17, 2);
     GPIO_IntDisable(0, 16, 2);
-    GPIO_IntDisable(0, 15, 2);
+    GPIO_IntDisable(0, 15, 2);*/
     //__disable_irq(); // test, deactivate all interrupts, I2C working?
-    // read data from sensors
-    Gyro.read(); // einzeln testen! mit LEDs
-    Acc.read();
-    Comp.read();
+    Gyro.read();
+    //Acc.read();
+    //Comp.read();
     //Alt.Update(); TODO braucht zu lange zum auslesen!
     //__enable_irq();
-    GPIO_IntEnable(0, 18, 2); // schaltet enable wirklich wieder ein?? änderungsbedarf??
+    /*GPIO_IntEnable(0, 18, 2); // schaltet die PINs wieder ein
     GPIO_IntEnable(0, 17, 2);
     GPIO_IntEnable(0, 16, 2);
-    GPIO_IntEnable(0, 15, 2);
+    GPIO_IntEnable(0, 15, 2);*/
     
     dt_read_sensors = GlobalTimer.read_us() - time_read_sensors;
     
@@ -86,9 +86,11 @@ void get_Data()
     */
 }
 
-
-int main() {
-    //NVIC_SetPriority(TIMER3_IRQn, 2); // set priorty of tickers below hardware interrupts
+int main() { // main programm only used for initialisation and debug output
+    NVIC_SetPriority(TIMER3_IRQn, 2); // set priorty of tickers below hardware interrupts
+    /*NVIC_SetPriority(I2C0_IRQn, 1); //I2C Priorität?
+    NVIC_SetPriority(I2C1_IRQn, 1);
+    NVIC_SetPriority(I2C2_IRQn, 1);*/
     
     #ifdef COMPASSCALIBRATE
         pc.locate(10,5);
@@ -101,7 +103,7 @@ int main() {
     pc.printf("Flybed v0.2");
     LEDs.roll(2);
     
-    // Start!
+    // Start! TODO: Motor und RC start (armed....?)
     GlobalTimer.start();
     Datagetter.attach(&get_Data, RATE);     // start to get data all RATEms
     
@@ -117,27 +119,27 @@ int main() {
         pc.locate(10,12);
         pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
         pc.locate(10,13);
-        pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]);
+        //pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]); no more accessible its private
         pc.locate(10,15);
         pc.printf("pidtester: %6.1f   RC: %d %d %d %d     ", pidtester, RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
         
         pc.locate(10,19);
-        pc.printf("RC0: %d :[", RC[0].read());
+        pc.printf("RC0: %4d :[", RC[0].read());
         for (int i = 0; i < (RC[0].read() - 1000)/17; i++)
             pc.printf("=");
         pc.printf("                                                       ");
         pc.locate(10,20);
-        pc.printf("RC1: %d :[", RC[1].read());
+        pc.printf("RC1: %4d :[", RC[1].read());
         for (int i = 0; i < (RC[1].read() - 1000)/17; i++)
             pc.printf("=");
         pc.printf("                                                       ");
         pc.locate(10,21);
-        pc.printf("RC2: %d :[", RC[2].read());
+        pc.printf("RC2: %4d :[", RC[2].read());
         for (int i = 0; i < (RC[2].read() - 1000)/17; i++)
             pc.printf("=");
         pc.printf("                                                       ");
         pc.locate(10,22);
-        pc.printf("RC3: %d :[", RC[3].read());
+        pc.printf("RC3: %4d :[", RC[3].read());
         for (int i = 0; i < (RC[3].read() - 1000)/17; i++)
             pc.printf("=");
         pc.printf("                                                       ");
