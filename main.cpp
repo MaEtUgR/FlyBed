@@ -6,13 +6,17 @@
 #include "HMC5883.h"    // Comp (Compass)
 #include "BMP085_old.h"     // Alt (Altitude sensor)
 #include "RC_Channel.h" // RemoteControl Chnnels with PPM
-#include "Servo.h"      // Motor PPM
+#include "Servo_PWM.h"  // Motor PPM using PwmOut
 #include "PID.h"        // PID Library by Aaron Berk
 #include "IntCtrl.h"    // Interrupt Control by Roland Elmiger
 
 #define PI              3.1415926535897932384626433832795   // ratio of a circle's circumference to its diameter
 #define Rad2Deg         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
-#define RATE            0.0007                               // speed of the interrupt for Sensors and PID
+#define RATE            0.02                                // speed of the interrupt for Sensors and PID
+
+#define P_VALUE         0.1                                // viel zu tief!!!!!
+#define I_VALUE         0.0                                // 
+#define D_VALUE         0.0                                // 
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 
@@ -26,12 +30,12 @@ L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
 BMP085_old      Alt(p28, p27);
-RC_Channel  RC[] = {(p11), (p12), (p13), (p14)}; // noooo p19/p20!!!!
-Servo       Motor[] = {(p15), (p16), (p17), (p18)};
+RC_Channel  RC[] = {(p11), (p12), (p13), (p14)};    // noooo p19/p20 !
+Servo_PWM   Motor[] = {(p21), (p22), (p23), (p24)}; // p21 - p26 only !
 
-PID controller(1.0, 0.0, 0.0, RATE);  // test PID controller for throttle
-PID pid(1.0, 1.0, 0.0, RATE);         // test PID controller for throttle
-//PID P:3,0 bis 3,5 I:0,010 und 0,050 D:5 und 25 
+//PID         Controller[] = {(P_VALUE, I_VALUE, D_VALUE, RATE), (P_VALUE, I_VALUE, D_VALUE, RATE), (P_VALUE, I_VALUE, D_VALUE, RATE)}; // TODO: RATE != dt immer anpassen
+//PID       P:3,0 bis 3,5     I:0,010 und 0,050       D:5 und 25 
+PID     Controller(P_VALUE, I_VALUE, D_VALUE, RATE);
 
 
 // global varibles
@@ -41,27 +45,17 @@ unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
 float           angle[3] = {0,0,0}; // calculated values of the position [0: x,roll | 1: y,pitch | 2: z,yaw]
 float           tempangle = 0; // temporärer winkel für yaw ohne kompass
-float pidtester;
+float co; // PID test
 
 void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
 {
     time_read_sensors = GlobalTimer.read_us();
     
-    // read data from sensors
-    /*GPIO_IntDisable(0, 18, 2); // abschalten der Pins 11-14 mit Göttis library
-    GPIO_IntDisable(0, 17, 2);
-    GPIO_IntDisable(0, 16, 2);
-    GPIO_IntDisable(0, 15, 2);*/
-    //__disable_irq(); // test, deactivate all interrupts, I2C working?
+    // read data from sensors // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes
     Gyro.read();
-    //Acc.read();
-    //Comp.read();
+    Acc.read(); // TODO: nicht jeder Sensor immer? höhe nicht so wichtig
+    Comp.read();
     //Alt.Update(); TODO braucht zu lange zum auslesen!
-    //__enable_irq();
-    /*GPIO_IntEnable(0, 18, 2); // schaltet die PINs wieder ein
-    GPIO_IntEnable(0, 17, 2);
-    GPIO_IntEnable(0, 16, 2);
-    GPIO_IntEnable(0, 15, 2);*/
     
     dt_read_sensors = GlobalTimer.read_us() - time_read_sensors;
     
@@ -75,22 +69,38 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
     angle[2] += Gyro.data[2] *dt_get_data/15000000.0; // gyro only here
     
-    // TODO Read RC data
+    // PID controlling
+    Controller.setProcessValue(angle[1]);
     
     // calculate new motorspeeds
-    /*
-    Motor[0] = 1000 + (100 + (angle[0] * 500/90)) * (RC[1].read() - 1000) / 1000;
-    Motor[1] = 1000 + (100 + (angle[1] * 500/90)) * (RC[1].read() - 1000) / 1000;
-    Motor[2] = 1000 + (100 - (angle[0] * 500/90)) * (RC[1].read() - 1000) / 1000;
-    Motor[3] = 1000 + (100 - (angle[1] * 500/90)) * (RC[1].read() - 1000) / 1000;
-    */
+    co = Controller.compute() - 1000;
+    if (RC[2].read() > 1100) // zu SICHERHEIT! zum testen (ersetzt armed unarmed)
+    {
+        /*Motor[0] = RC[2].read()+((RC[0].read() - 1500)/10.0)+40;
+        Motor[2] = RC[2].read()-((RC[0].read() - 1500)/10.0)-40;*/
+        Motor[0] = RC[2].read()+co+40;
+        Motor[2] = RC[2].read()-co-40;
+    } else {
+        Motor[0] = 1000;
+        Motor[1] = 1000;
+        Motor[2] = 1000;
+        Motor[3] = 1000;
+    }
+    /*Motor[0] = 1000 + (100 - (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000;
+    Motor[1] = 1000 + (100 - (angle[0] * 500/90)) * (RC[2].read() - 1000) / 1000;
+    Motor[2] = 1000 + (100 + (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000;
+    Motor[3] = 1000 + (100 + (angle[0] * 500/90)) * (RC[2].read() - 1000) / 1000;*/
 }
 
 int main() { // main programm only used for initialisation and debug output
     NVIC_SetPriority(TIMER3_IRQn, 2); // set priorty of tickers below hardware interrupts
-    /*NVIC_SetPriority(I2C0_IRQn, 1); //I2C Priorität?
-    NVIC_SetPriority(I2C1_IRQn, 1);
-    NVIC_SetPriority(I2C2_IRQn, 1);*/
+    
+    //for(int i=0;i<3;i++)
+        Controller.setInputLimits(-90.0, 90.0);
+        Controller.setOutputLimits(0.0, 2000.0);
+        Controller.setBias(1000);
+        Controller.setMode(MANUAL_MODE);//AUTO_MODE);
+        Controller.setSetPoint(0);
     
     #ifdef COMPASSCALIBRATE
         pc.locate(10,5);
@@ -121,7 +131,7 @@ int main() { // main programm only used for initialisation and debug output
         pc.locate(10,13);
         //pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]); no more accessible its private
         pc.locate(10,15);
-        pc.printf("pidtester: %6.1f   RC: %d %d %d %d     ", pidtester, RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
+        pc.printf("PID Test: %6.1f", co);
         
         pc.locate(10,19);
         pc.printf("RC0: %4d :[", RC[0].read());

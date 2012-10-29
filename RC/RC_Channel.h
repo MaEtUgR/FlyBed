@@ -2,7 +2,6 @@
 #define RC_CHANNEL_H
 
 #include "mbed.h"
-#include "LED.h"
 
 class RC_Channel
 {
@@ -16,8 +15,6 @@ class RC_Channel
         void fall(); // stop the time mesurement and save the value when signal falls
         Timer timer; // timer to measure the up time of the signal and if the signal timed out
         int time; // last measurement data
-        
-        LED LEDs;
         
         Ticker timeoutchecker; // Ticker to see if signal broke down
         void timeoutcheck(); // to check for timeout, checked every second

@@ -94,8 +94,8 @@ void HMC5883::writeReg(char address, char data){
 }
 
 void HMC5883::readMultiReg(char address, char* output, int size) {
-    i2c.write(I2CADR_W(HMC5883_ADDRESS), &address, 1); //tell it where to read from
-    i2c.read(I2CADR_R(HMC5883_ADDRESS) , output, size); //tell it where to store the data read
+    i2c.write(I2CADR_W(HMC5883_ADDRESS), &address, 1, true); //tell it where to read from
+    i2c.read(I2CADR_R(HMC5883_ADDRESS) , output, size, true); //tell it where to store the data read
 }
 
 float HMC5883::get_angle()

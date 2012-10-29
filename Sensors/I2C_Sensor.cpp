@@ -12,7 +12,7 @@ I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, int8_t i2c_address) :  i2c(sda,
     i2c.frequency(1500000); // ultrafast!
 }
 
-void saveCalibrationValues(float values[], int size, char * filename)
+void I2C_Sensor::saveCalibrationValues(float values[], int size, char * filename)
 {
     FILE *fp = fopen(strcat("/local/", filename), "w");
     for(int i = 0; i < size; i++)
@@ -20,7 +20,7 @@ void saveCalibrationValues(float values[], int size, char * filename)
     fclose(fp);
 }
 
-void loadCalibrationValues(float values[], int size, char * filename)
+void I2C_Sensor::loadCalibrationValues(float values[], int size, char * filename)
 {
     FILE *fp = fopen(strcat("/local/", filename), "r");
     for(int i = 0; i < size; i++)
@@ -28,14 +28,26 @@ void loadCalibrationValues(float values[], int size, char * filename)
     fclose(fp);
 }
 
-void I2C_Sensor::writeRegister(char address, char data){ 
-    char tx[2];
-    tx[0] = address;
-    tx[1] = data;
-    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), tx, 2);
+char I2C_Sensor::readRegister(char reg)
+{
+    char value = 0;
+    
+    i2c.write(L3G4200D_I2C_ADDRESS, &reg, 1, true);
+    i2c.read(L3G4200D_I2C_ADDRESS, &value, 1, true);
+
+    return value;
 }
 
-void I2C_Sensor::readMultiRegister(char address, char* output, int size) {
-    i2c.write (GET_I2C_WRITE_ADDRESS(i2c_address), &address, 1);      //tell it from which register to read
-    i2c.read  (GET_I2C_READ_ADDRESS(i2c_address), output, size);      //tell it where to store the data read
+void I2C_Sensor::writeRegister(char reg, char data)
+{ 
+    char buffer[2]; // TODO: Arraykonstruktion in eine Zeile
+    buffer[0] = reg;
+    buffer[1] = data;
+    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), tx, 2, true);
+}
+
+void I2C_Sensor::readMultiRegister(char reg, char* output, int size)
+{ // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes (see http://www.i2c-bus.org/repeated-start-condition/)
+    i2c.write (GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true);      //tell it from which register to read
+    i2c.read  (GET_I2C_READ_ADDRESS(i2c_address), output, size, true);      //tell it where to store the data read
 }

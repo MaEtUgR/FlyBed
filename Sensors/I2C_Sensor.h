@@ -12,17 +12,17 @@ class I2C_Sensor
         
     protected:
         // I2C functions
-        void writeRegister(char address, char data);
-        void readMultiRegister(char address, char* output, int size);
-        
-    private:
-        I2C i2c;            // I2C-Bus
-    
-        int8_t i2c_address; // address
+        char readRegister(char reg);
+        void writeRegister(char reg, char data);
+        void readMultiRegister(char reg, char* output, int size);
         
         // raw data and function to measure it
         int raw[3];
         void readraw();
+        
+    private:
+        I2C i2c;            // I2C-Bus
+        int8_t i2c_address; // address
         
         LocalFileSystem local; // file access to save calibration values
 };

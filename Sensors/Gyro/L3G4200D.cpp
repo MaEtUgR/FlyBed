@@ -7,7 +7,7 @@
 
 L3G4200D::L3G4200D(PinName sda, PinName scl) : i2c(sda, scl)
 {
-    i2c.frequency(100000);
+    i2c.frequency(400000);
     // Turns on the L3G4200D's gyro and places it in normal mode.
     // Normal power mode, all axes enabled
     
@@ -78,28 +78,10 @@ void L3G4200D::read()
     // to do slave-transmit subaddress updating.
     buffer[0] = L3G4200D_OUT_X_L | (1 << 7);
     
-    //i2c.write(L3G4200D_I2C_ADDRESS, buffer, 1); 
+    i2c.write(L3G4200D_I2C_ADDRESS, buffer, 1, true); 
+    i2c.read(L3G4200D_I2C_ADDRESS, buffer, 6, true); 
     
-    //i2c.read(L3G4200D_I2C_ADDRESS, buffer, 6); 
-    
-    L3G4200D_OUT_X_L
-    L3G4200D_OUT_X_H
-    L3G4200D_OUT_Y_L
-    L3G4200D_OUT_Y_H
-    L3G4200D_OUT_Z_L
-    L3G4200D_OUT_Z_H
-    
-    i2c.start();
-    i2c.write(L3G4200D_I2C_ADDRESS);
-    i2c.write(L3G4200D_OUT_X_L);
-
-    i2c.start();
-    i2c.write(L3G4200D_I2C_ADDRESS | 1);
-    buffer[1]  = i2c.read(1) << 8;
-    buffer[1] |= i2c.read(0);
-    i2c.stop();
-    
-    //data[0] = (short) (buffer[1] << 8 | buffer[0]);
+    data[0] = (short) (buffer[1] << 8 | buffer[0]);
     data[1] = (short) (buffer[3] << 8 | buffer[2]);
     data[2] = (short) (buffer[5] << 8 | buffer[4]);
     

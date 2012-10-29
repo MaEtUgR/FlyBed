@@ -76,8 +76,8 @@ char ADXL345::readReg(char address){
 }
 
 void ADXL345::readMultiReg(char address, char* output, int size) {
-    i2c.write(ADXL345_WRITE, &address, 1); //tell it where to read from
-    i2c.read(ADXL345_READ , output, size); //tell it where to store the data read
+    i2c.write(ADXL345_WRITE, &address, 1, true); //tell it where to read from
+    i2c.read(ADXL345_READ , output, size, true); //tell it where to store the data read
 }
 
 void ADXL345::setDataRate(char rate) {
