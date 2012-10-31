@@ -1,6 +1,7 @@
 #ifndef BMP085_H
 #define BMP085_H
 
+#include "mbed.h"
 #include "I2C_Sensor.h"
 
 // I2C address

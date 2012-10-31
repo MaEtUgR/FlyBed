@@ -28,26 +28,28 @@ void I2C_Sensor::loadCalibrationValues(float values[], int size, char * filename
     fclose(fp);
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// ATTENTION!!! the I2C option "repeated" = true is important because otherwise interrupts while bus communications cause crashes (see http://www.i2c-bus.org/repeated-start-condition/)
+//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 char I2C_Sensor::readRegister(char reg)
 {
     char value = 0;
     
-    i2c.write(L3G4200D_I2C_ADDRESS, &reg, 1, true);
-    i2c.read(L3G4200D_I2C_ADDRESS, &value, 1, true);
+    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true);
+    i2c.read(GET_I2C_READ_ADDRESS(i2c_address), &value, 1, true);
 
     return value;
 }
 
 void I2C_Sensor::writeRegister(char reg, char data)
 { 
-    char buffer[2]; // TODO: Arraykonstruktion in eine Zeile
-    buffer[0] = reg;
-    buffer[1] = data;
-    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), tx, 2, true);
+    char buffer[2] = {reg, data};
+    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), buffer, 2, true);
 }
 
 void I2C_Sensor::readMultiRegister(char reg, char* output, int size)
-{ // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes (see http://www.i2c-bus.org/repeated-start-condition/)
-    i2c.write (GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true);      //tell it from which register to read
-    i2c.read  (GET_I2C_READ_ADDRESS(i2c_address), output, size, true);      //tell it where to store the data read
+{
+    i2c.write (GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true); // tell register address of the MSB get the sensor to do slave-transmit subaddress updating.
+    i2c.read  (GET_I2C_READ_ADDRESS(i2c_address), output, size, true); // tell it where to store the data read
 }

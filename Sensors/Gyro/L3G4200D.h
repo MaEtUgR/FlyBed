@@ -4,6 +4,7 @@
 #define L3G4200D_H
 
 #include "mbed.h"
+#include "I2C_Sensor.h"
 
 // register addresses
 #define L3G4200D_WHO_AM_I      0x0F
@@ -37,21 +38,16 @@
 #define L3G4200D_INT1_THS_ZL   0x37
 #define L3G4200D_INT1_DURATION 0x38
 
-typedef char byte;
-
-class L3G4200D
+class L3G4200D : public I2C_Sensor
 {
     public:            
-        L3G4200D(PinName sda, PinName scl); // constructor, uses i2c
-        void read(); // read all axis to array
-        int readTemp(); // read temperature from sensor
-        float data[3]; // where the measured data is saved
+        L3G4200D(PinName sda, PinName scl); // constructor, uses I2C_Sensor class
+        void read();                        // read all axis to array
+        float data[3];                      // where the measured data is saved
+        int readTemp();                     // read temperature from sensor
         
     private:
         float offset[3]; // offset that's subtracted from every measurement
-        I2C i2c; // i2c object to communicate
-        void writeReg(byte reg, byte value); // write one single register to sensor
-        byte readReg(byte reg); // read one single register from sensor
 };
 
 #endif

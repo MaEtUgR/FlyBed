@@ -11,6 +11,10 @@ class I2C_Sensor
         void calibrate();
         
     protected:
+        // Calibration value saving
+        void saveCalibrationValues(float values[], int size, char * filename);
+        void loadCalibrationValues(float values[], int size, char * filename);
+    
         // I2C functions
         char readRegister(char reg);
         void writeRegister(char reg, char data);

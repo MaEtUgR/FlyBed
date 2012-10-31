@@ -74,7 +74,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     
     // calculate new motorspeeds
     co = Controller.compute() - 1000;
-    if (RC[2].read() > 1100) // zu SICHERHEIT! zum testen (ersetzt armed unarmed)
+    if (RC[2].read() > 1100) // zu SICHERHEIT! zum testen (später ersetzen armed unarmed)
     {
         /*Motor[0] = RC[2].read()+((RC[0].read() - 1500)/10.0)+40;
         Motor[2] = RC[2].read()-((RC[0].read() - 1500)/10.0)-40;*/
@@ -86,14 +86,14 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
         Motor[2] = 1000;
         Motor[3] = 1000;
     }
-    /*Motor[0] = 1000 + (100 - (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000;
+    /*Motor[0] = 1000 + (100 - (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000; // test für erste reaktion der motoren entgegen der Auslenkung
     Motor[1] = 1000 + (100 - (angle[0] * 500/90)) * (RC[2].read() - 1000) / 1000;
     Motor[2] = 1000 + (100 + (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000;
     Motor[3] = 1000 + (100 + (angle[0] * 500/90)) * (RC[2].read() - 1000) / 1000;*/
 }
 
 int main() { // main programm only used for initialisation and debug output
-    NVIC_SetPriority(TIMER3_IRQn, 2); // set priorty of tickers below hardware interrupts
+    NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)
     
     //for(int i=0;i<3;i++)
         Controller.setInputLimits(-90.0, 90.0);
