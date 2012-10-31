@@ -1,5 +1,9 @@
+// by MaEtUgR
+
 #ifndef I2C_Sensor_H
 #define I2C_Sensor_H
+
+#include "mbed.h"
 
 class I2C_Sensor
 {           

@@ -11,7 +11,7 @@
 #include "IntCtrl.h"    // Interrupt Control by Roland Elmiger
 
 #define PI              3.1415926535897932384626433832795   // ratio of a circle's circumference to its diameter
-#define Rad2Deg         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
+#define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
 #define P_VALUE         0.1                                // viel zu tief!!!!!

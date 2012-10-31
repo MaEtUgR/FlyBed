@@ -1,10 +1,7 @@
-#include "mbed.h"
 #include "HMC5883.h"
 
-HMC5883::HMC5883(PinName sda, PinName scl) :  i2c(sda, scl), local("local")
-{
-    i2c.frequency(400000); // TODO: zu testen!!
-    
+HMC5883::HMC5883(PinName sda, PinName scl) : I2C_Sensor(sda, scl, HMC5883_I2C_ADDRESS), local("local")
+{   
     // load calibration values
     FILE *fp = fopen("/local/compass.txt", "r");
     for(int i = 0; i < 3; i++)
@@ -14,9 +11,9 @@ HMC5883::HMC5883(PinName sda, PinName scl) :  i2c(sda, scl), local("local")
     fclose(fp);
     
     // initialize HMC5883 for scaling
-    writeReg(HMC5883_CONF_REG_A, 0x19); // 8 samples, 75Hz output, test mode for scaling!
-    writeReg(HMC5883_CONF_REG_B, 0x20); // Gain for +- 1.3 gauss (earth compass ~0.6 gauss)
-    writeReg(HMC5883_MODE_REG, 0x00); // continuous measurement-mode
+    writeRegister(HMC5883_CONF_REG_A, 0x19); // 8 samples, 75Hz output, test mode for scaling!
+    writeRegister(HMC5883_CONF_REG_B, 0x20); // Gain for +- 1.3 gauss (earth compass ~0.6 gauss)
+    writeRegister(HMC5883_MODE_REG, 0x00); // continuous measurement-mode
     
     /*          (not important, just from data sheet)
     // Scaling with testmode
@@ -36,7 +33,7 @@ HMC5883::HMC5883(PinName sda, PinName scl) :  i2c(sda, scl), local("local")
     */
     
     // set normal mode
-    writeReg(HMC5883_CONF_REG_A, 0x78); // 8 samples, 75Hz output, normal mode
+    writeRegister(HMC5883_CONF_REG_A, 0x78); // 8 samples, 75Hz output, normal mode
 }
 
 void HMC5883::read()
@@ -76,35 +73,22 @@ void HMC5883::calibrate(int s)
 
 void HMC5883::readraw()
 {
-    char buffer[6];
+    char buffer[6];                                         // 8-Bit pieces of axis data
     
-    readMultiReg(HMC5883_DATA_OUT_X_MSB, buffer, 6); // read the raw data from I2C
+    readMultiRegister(HMC5883_DATA_OUT_X_MSB, buffer, 6);   // read axis registers using I2C
     
-    // join MSB and LSB of X, Z and Y (yes, order is so stupid, see datasheet)
-    raw[0] = (short) (buffer[0] << 8 | buffer[1]);
-    raw[1] = (short) (buffer[4] << 8 | buffer[5]);
+    raw[0] = (short) (buffer[0] << 8 | buffer[1]);          // join 8-Bit pieces to 16-bit short integers
+    raw[1] = (short) (buffer[4] << 8 | buffer[5]);          // X, Z and Y (yes, order is stupid like this, see datasheet)
     raw[2] = (short) (buffer[2] << 8 | buffer[3]);
-}
-
-void HMC5883::writeReg(char address, char data){ 
-    char tx[2];
-    tx[0] = address;
-    tx[1] = data;
-    i2c.write(I2CADR_W(HMC5883_ADDRESS), tx, 2);
-}
-
-void HMC5883::readMultiReg(char address, char* output, int size) {
-    i2c.write(I2CADR_W(HMC5883_ADDRESS), &address, 1, true); //tell it where to read from
-    i2c.read(I2CADR_R(HMC5883_ADDRESS) , output, size, true); //tell it where to store the data read
 }
 
 float HMC5883::get_angle()
 {
-    #define Rad2Deg     57.295779513082320876798154814105
+    #define RAD2DEG     57.295779513082320876798154814105
 
     float Heading;
     
-    Heading = Rad2Deg * atan2(data[0],data[1]);
+    Heading = RAD2DEG * atan2(data[0],data[1]);
     Heading += 1.367;                   //bei Ost-Deklination  += DecAngle, bei West-Deklination -= DecAngle
                                         //Missweisung = Winkel zwischen geographischer und magnetischer Nordrichtung
                                         //Bern ca. 1.367 Grad Ost

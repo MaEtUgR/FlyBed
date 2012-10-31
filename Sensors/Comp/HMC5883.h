@@ -1,5 +1,10 @@
+// based on http://mbed.org/users/BlazeX/code/HMC5883/
+
 #ifndef HMC5883_H
 #define HMC5883_H
+
+#include "mbed.h"
+#include "I2C_Sensor.h"
 
 #define HMC5883_CONF_REG_A      0x00
 #define HMC5883_CONF_REG_B      0x01
@@ -7,11 +12,9 @@
 #define HMC5883_DATA_OUT_X_MSB  0x03
 
 // I2C addresses
-#define HMC5883_ADDRESS 0x1E
-#define I2CADR_W(ADR)           (ADR << 1&0xFE) // ADR & 1111 1110
-#define I2CADR_R(ADR)           (ADR << 1|0x01) // ADR | 0000 0001
+#define HMC5883_I2C_ADDRESS 0x1E
 
-class HMC5883
+class HMC5883 : public I2C_Sensor
 {           
     public:
         HMC5883(PinName sda, PinName scl);
@@ -22,15 +25,9 @@ class HMC5883
         float get_angle();
          
     private:
-        I2C i2c;
-        
-        // raw data and function to measure it
+        // raw data and function to get it
         int raw[3];
         void readraw();
-        
-        // I2C functions
-        void writeReg(char address, char data);
-        void readMultiReg(char address, char* output, int size);
         
         // calibration parameters and their saving
         int Min[3];

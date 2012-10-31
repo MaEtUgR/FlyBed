@@ -4,7 +4,6 @@
 #include "mbed.h"
 #include "I2C_Sensor.h"
 
-// I2C address
 #define BMP085_I2C_ADDRESS 0xEE
 
 class BMP085 : public I2C_Sensor

@@ -1,4 +1,3 @@
-#include "mbed.h"
 #include "I2C_Sensor.h"
 
 // calculate the 8-Bit write/read I2C-Address from the 7-Bit adress of the device

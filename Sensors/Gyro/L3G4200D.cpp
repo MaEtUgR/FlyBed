@@ -1,8 +1,4 @@
-#include "mbed.h"
 #include "L3G4200D.h"
-#include <math.h>
-
-#define L3G4200D_I2C_ADDRESS 0xD0               // TODO: Adressen???
 
 L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C_ADDRESS)
 {
@@ -37,7 +33,8 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
             
     float Gyro_calib[3] = {0,0,0};                      // temporary var for the sum of calibration measurement
     
-    for (int i = 0; i < 50; i++) {                      // read 50 times the data in a very short time
+    const int count = 50;
+    for (int i = 0; i < count; i++) {                   // read 50 times the data in a very short time
         read();
         for (int j = 0; j < 3; j++)
             Gyro_calib[j] += data[j];
@@ -52,11 +49,11 @@ void L3G4200D::read()
 {
     char buffer[6];                                     // 8-Bit pieces of axis data
     
-    buffer[0] = L3G4200D_OUT_X_L | (1 << 7);
+    //buffer[0] = L3G4200D_OUT_X_L | (1 << 7);          // TODO: wiiiiiiso?!
     
-    readMultiRegister(L3G4200D_OUT_X_L, buffer, 6);     // parameter: 
+    readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C
     
-    data[0] = (short) (buffer[1] << 8 | buffer[0]);     // compose 8-Bit pieces to 16-bit short integers
+    data[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
     data[1] = (short) (buffer[3] << 8 | buffer[2]);
     data[2] = (short) (buffer[5] << 8 | buffer[4]);
     
