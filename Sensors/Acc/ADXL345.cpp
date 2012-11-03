@@ -25,9 +25,9 @@ void ADXL345::read()
     
     readMultiRegister(ADXL345_DATAX0_REG, buffer, 6);   // read axis registers using I2C
     
-    data[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
-    data[1] = (short) (buffer[3] << 8 | buffer[2]);
-    data[2] = (short) (buffer[5] << 8 | buffer[4]);
+    data[0] = (float)(short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
+    data[1] = (float)(short) (buffer[3] << 8 | buffer[2]);
+    data[2] = (float)(short) (buffer[5] << 8 | buffer[4]);
     
     // calculate the angles for roll and pitch (0,1)
     float R = sqrt(pow((float)data[0],2) + pow((float)data[1],2) + pow((float)data[2],2));  // calculate the absolute of the magnetic field vector

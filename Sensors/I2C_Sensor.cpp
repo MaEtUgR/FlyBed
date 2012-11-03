@@ -35,8 +35,8 @@ char I2C_Sensor::readRegister(char reg)
 {
     char value = 0;
     
-    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true);
-    i2c.read(GET_I2C_READ_ADDRESS(i2c_address), &value, 1, true);
+    i2c.write(i2c_address, &reg, 1, true);
+    i2c.read(i2c_address, &value, 1, true);
 
     return value;
 }
@@ -44,11 +44,11 @@ char I2C_Sensor::readRegister(char reg)
 void I2C_Sensor::writeRegister(char reg, char data)
 { 
     char buffer[2] = {reg, data};
-    i2c.write(GET_I2C_WRITE_ADDRESS(i2c_address), buffer, 2, true);
+    i2c.write(i2c_address, buffer, 2, true);
 }
 
 void I2C_Sensor::readMultiRegister(char reg, char* output, int size)
 {
-    i2c.write (GET_I2C_WRITE_ADDRESS(i2c_address), &reg, 1, true); // tell register address of the MSB get the sensor to do slave-transmit subaddress updating.
-    i2c.read  (GET_I2C_READ_ADDRESS(i2c_address), output, size, true); // tell it where to store the data read
+    i2c.write (i2c_address, &reg, 1, true); // tell register address of the MSB get the sensor to do slave-transmit subaddress updating.
+    i2c.read  (i2c_address, output, size, true); // tell it where to store the data read
 }

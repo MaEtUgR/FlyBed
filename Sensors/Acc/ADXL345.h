@@ -6,7 +6,7 @@
 #include "mbed.h"
 #include "I2C_Sensor.h"
 
-#define ADXL345_I2C_ADDRESS        0
+#define ADXL345_I2C_ADDRESS         0xA6
 // read or write bytes
 //#define ADXL345_READ    0xA7  
 //#define ADXL345_WRITE   0xA6 

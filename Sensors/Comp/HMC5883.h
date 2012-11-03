@@ -6,7 +6,7 @@
 #include "mbed.h"
 #include "I2C_Sensor.h"
 
-#define HMC5883_I2C_ADDRESS 0x1E
+#define HMC5883_I2C_ADDRESS     0x3C
 
 #define HMC5883_CONF_REG_A      0x00
 #define HMC5883_CONF_REG_B      0x01

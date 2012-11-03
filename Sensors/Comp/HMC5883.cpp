@@ -3,8 +3,8 @@
 HMC5883::HMC5883(PinName sda, PinName scl) : I2C_Sensor(sda, scl, HMC5883_I2C_ADDRESS)
 {   
     // load calibration values
-    loadCalibrationValues(scale, 3, "COMPASS_SCALE.txt");
-    loadCalibrationValues(offset, 3, "COMPASS_OFFSET.txt");
+    //loadCalibrationValues(scale, 3, "COMPASS_SCALE.txt");
+    //loadCalibrationValues(offset, 3, "COMPASS_OFFSET.txt");
     
     // initialize HMC5883
     writeRegister(HMC5883_CONF_REG_A, 0x78);                // 8 samples, 75Hz output, normal mode

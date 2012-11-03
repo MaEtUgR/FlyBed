@@ -8,7 +8,6 @@
 #include "RC_Channel.h" // RemoteControl Chnnels with PPM
 #include "Servo_PWM.h"  // Motor PPM using PwmOut
 #include "PID.h"        // PID Library by Aaron Berk
-#include "IntCtrl.h"    // Interrupt Control by Roland Elmiger
 
 #define PI              3.1415926535897932384626433832795   // ratio of a circle's circumference to its diameter
 #define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
@@ -25,7 +24,7 @@ Ticker Datagetter;                      // timecontrolled interrupt to get data 
 
 // initialisation of hardware (see includes for more info)
 LED         LEDs;
-PC          pc(USBTX, USBRX, 57600); // TODO: Testen ?!!! 115.200
+PC          pc(USBTX, USBRX, 115200);
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
@@ -132,6 +131,12 @@ int main() { // main programm only used for initialisation and debug output
         //pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]); no more accessible its private
         pc.locate(10,15);
         pc.printf("PID Test: %6.1f", co);
+        pc.locate(10,16);
+        pc.printf("Gyro_data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
+        pc.locate(10,17);
+        pc.printf("Acc_data: X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
+        pc.locate(10,18);
+        pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
         
         pc.locate(10,19);
         pc.printf("RC0: %4d :[", RC[0].read());
