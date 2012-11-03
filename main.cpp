@@ -25,7 +25,7 @@ Ticker Datagetter;                      // timecontrolled interrupt to get data 
 
 // initialisation of hardware (see includes for more info)
 LED         LEDs;
-PC          pc(USBTX, USBRX, 57600);
+PC          pc(USBTX, USBRX, 57600); // TODO: Testen ?!!! 115.200
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);

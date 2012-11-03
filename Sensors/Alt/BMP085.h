@@ -1,3 +1,5 @@
+// based on http://mbed.org/users/okini3939/code/BMP085/
+
 #ifndef BMP085_H
 #define BMP085_H
 
@@ -11,13 +13,11 @@ class BMP085 : public I2C_Sensor
     public:
         BMP085(PinName sda, PinName scl);
         
-        float data[3];
-        
-        void read();
+        //virtual void read();
         
         void calibrate(int s);
         
-        float get_angle();
+        float get_height();
          
     private:
         // raw data and function to measure it

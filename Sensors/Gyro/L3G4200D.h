@@ -44,8 +44,7 @@ class L3G4200D : public I2C_Sensor
 {
     public:            
         L3G4200D(PinName sda, PinName scl); // constructor, uses I2C_Sensor class
-        void read();                        // read all axis to array
-        float data[3];                      // where the measured data is saved
+        virtual void read();                // read all axis from register to array data
         int readTemp();                     // read temperature from sensor
         
     private:

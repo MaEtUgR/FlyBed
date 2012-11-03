@@ -1,39 +1,16 @@
 #include "HMC5883.h"
 
-HMC5883::HMC5883(PinName sda, PinName scl) : I2C_Sensor(sda, scl, HMC5883_I2C_ADDRESS), local("local")
+HMC5883::HMC5883(PinName sda, PinName scl) : I2C_Sensor(sda, scl, HMC5883_I2C_ADDRESS)
 {   
     // load calibration values
-    FILE *fp = fopen("/local/compass.txt", "r");
-    for(int i = 0; i < 3; i++)
-        fscanf(fp, "%f", &scale[i]);
-    for(int i = 0; i < 3; i++)
-        fscanf(fp, "%f", &offset[i]);
-    fclose(fp);
+    loadCalibrationValues(scale, 3, "COMPASS_SCALE.txt");
+    loadCalibrationValues(offset, 3, "COMPASS_OFFSET.txt");
     
-    // initialize HMC5883 for scaling
-    writeRegister(HMC5883_CONF_REG_A, 0x19); // 8 samples, 75Hz output, test mode for scaling!
-    writeRegister(HMC5883_CONF_REG_B, 0x20); // Gain for +- 1.3 gauss (earth compass ~0.6 gauss)
-    writeRegister(HMC5883_MODE_REG, 0x00); // continuous measurement-mode
-    
-    /*          (not important, just from data sheet)
-    // Scaling with testmode
-    for(int j = 0; j < 3; j++) // set all scales to 1 first so the measurement for scaling is not already scaled
-        scale[j] = 1;
-    
-    int data50[3] = {0,0,0}; // to save the 50 measurements
-    for(int i = 0; i < 50; i++) // measure 50 times the testmode value to get an average
-    {
-        read();
-        for(int j = 0; j < 3; j++)
-            data50[j] += data[j];
-    }
-    scale[0] = (1.16 * 1090)/(data50[0]/50.0); // value that it should be with selftest of 1.1 Gauss * 1090 LSB/Gauss   /   the value it is
-    scale[1] = (1.16 * 1090)/(data50[1]/50.0);
-    scale[2] = (1.08 * 1090)/(data50[2]/50.0);
-    */
-    
-    // set normal mode
-    writeRegister(HMC5883_CONF_REG_A, 0x78); // 8 samples, 75Hz output, normal mode
+    // initialize HMC5883
+    writeRegister(HMC5883_CONF_REG_A, 0x78);                // 8 samples, 75Hz output, normal mode
+    //writeRegister(HMC5883_CONF_REG_A, 0x19);              // 8 samples, 75Hz output, test mode! (should get constant values from measurement, see datasheet)
+    writeRegister(HMC5883_CONF_REG_B, 0x20);                // Gain for +- 1.3 gauss (earth compass ~0.6 gauss)
+    writeRegister(HMC5883_MODE_REG, 0x00);                  // continuous measurement-mode
 }
 
 void HMC5883::read()
@@ -45,30 +22,28 @@ void HMC5883::read()
 
 void HMC5883::calibrate(int s)
 {
-    Timer calibrate_timer;
+    int Min[3];                                             // values for achieved maximum and minimum amplitude in calibrating environment
+    int Max[3];
+    
+    Timer calibrate_timer;                                  // timer to know when calibration is finished
     calibrate_timer.start();
     
-    while(calibrate_timer.read() < s)
+    while(calibrate_timer.read() < s)                       // take measurements for s seconds
     {
         readraw();
         for(int i = 0; i < 3; i++) {
-            Min[i]= Min[i] < raw[i] ? Min[i] : raw[i];
+            Min[i]= Min[i] < raw[i] ? Min[i] : raw[i];      // after each measurement check if there's a new minimum or maximum
             Max[i]= Max[i] > raw[i] ? Max[i] : raw[i];
-    
-            //Scale und Offset aus gesammelten Min Max Werten berechnen
-            //Die neue Untere und obere Grenze bilden -1 und +1
-            scale[i]= 2000 / (float)(Max[i]-Min[i]);
-            offset[i]= 1000 - (float)(Max[i]) * scale[i];
         }
     }
     
-    // save values
-    FILE *fp = fopen("/local/compass.txt", "w");
-    for(int i = 0; i < 3; i++)
-        fprintf(fp, "%f\r\n", scale[i]);
-    for(int i = 0; i < 3; i++)
-        fprintf(fp, "%f\r\n", offset[i]);
-    fclose(fp);
+    for(int i = 0; i < 3; i++) {
+        scale[i]= 2000 / (float)(Max[i]-Min[i]);            // calculate scale and offset out of the measured maxima and minima
+        offset[i]= 1000 - (float)(Max[i]) * scale[i];       // the lower bound is -1000, the higher one 1000
+    }
+    
+    saveCalibrationValues(scale, 3, "COMPASS_SCALE.txt");   // save new scale and offset values to flash
+    saveCalibrationValues(offset, 3, "COMPASS_OFFSET.txt");
 }
 
 void HMC5883::readraw()
@@ -89,10 +64,11 @@ float HMC5883::get_angle()
     float Heading;
     
     Heading = RAD2DEG * atan2(data[0],data[1]);
-    Heading += 1.367;                   //bei Ost-Deklination  += DecAngle, bei West-Deklination -= DecAngle
-                                        //Missweisung = Winkel zwischen geographischer und magnetischer Nordrichtung
-                                        //Bern ca. 1.367 Grad Ost
-                                        //http://www.swisstopo.admin.ch/internet/swisstopo/de/home/apps/calc/declination.html
+    Heading += 1.367;                   // correction of the angle between geographical and magnetical north direction, called declination
+                                        // if you need an east-declination += DecAngle, if you need west-declination -= DecAngle
+                                        // for me in Switzerland, Bern it's ca. 1.367 degree east
+                                        // see:     http://magnetic-declination.com/
+                                        // for me:  http://www.swisstopo.admin.ch/internet/swisstopo/de/home/apps/calc/declination.html
     if(Heading < 0)  
         Heading += 360;                 // minimum 0 degree
         

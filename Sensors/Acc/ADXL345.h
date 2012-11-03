@@ -72,8 +72,7 @@ class ADXL345 : public I2C_Sensor
 {
     public:
         ADXL345(PinName sda, PinName scl);  // constructor, uses I2C_Sensor
-        void read();                        // reads all axis to array
-        int data[3];                        // where the measured data is saved
+        virtual void read();                // read all axis from register to array data
         float angle[3];                     // where the calculated angles are stored
        
     private:

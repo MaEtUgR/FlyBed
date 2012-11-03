@@ -31,8 +31,8 @@ void ADXL345::read()
     
     // calculate the angles for roll and pitch (0,1)
     float R = sqrt(pow((float)data[0],2) + pow((float)data[1],2) + pow((float)data[2],2));  // calculate the absolute of the magnetic field vector
-    angle[0] = -(RAD2DEG * acos((float)data[1] / R)-90);                                    // roll - angle of magnetic field vector in x direction
-    angle[1] =   RAD2DEG * acos((float)data[0] / R)-90;                                    // pitch - angle of magnetic field vector in y direction
+    angle[0] = -(RAD2DEG * acos((float)data[1] / R)-90);                                    // roll  - angle of magnetic field vector in x direction
+    angle[1] =   RAD2DEG * acos((float)data[0] / R)-90;                                     // pitch - angle of magnetic field vector in y direction
     angle[2] =   RAD2DEG * acos((float)data[2] / R);                                        // angle from magnetic field vector in direction which it has
 }
 

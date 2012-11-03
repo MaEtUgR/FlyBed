@@ -10,9 +10,9 @@ class I2C_Sensor
     public:
         I2C_Sensor(PinName sda, PinName scl, int8_t address);
         
-        float data[3];
-        void read();
-        void calibrate();
+        float data[3];                  // where the measured data is saved
+        virtual void read() = 0;        // read all axis from register to array data
+        //TODO: virtual void calibrate() = 0;   // calibrate the sensor and if desired write calibration values to a file
         
     protected:
         // Calibration value saving
@@ -26,7 +26,7 @@ class I2C_Sensor
         
         // raw data and function to measure it
         int raw[3];
-        void readraw();
+        //virtual void readraw() = 0;
         
     private:
         I2C i2c;            // I2C-Bus
