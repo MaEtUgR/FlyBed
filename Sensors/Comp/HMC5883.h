@@ -23,7 +23,7 @@ class HMC5883 : public I2C_Sensor
         float get_angle();
          
     private:
-        void readraw();                 // function to get raw data
+        virtual void readraw();                 // function to get raw data
         
         float scale[3];                 // calibration parameters
         float offset[3];

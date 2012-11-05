@@ -22,7 +22,7 @@ class BMP085 : public I2C_Sensor
     private:
         // raw data and function to measure it
         int raw[3];
-        void readraw();
+        //void readraw();
         
         // calibration parameters and their saving
         int Min[3];

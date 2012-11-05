@@ -13,9 +13,9 @@
 #define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi)
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
-#define P_VALUE         0.1                                // viel zu tief!!!!!
-#define I_VALUE         0.0                                // 
-#define D_VALUE         0.0                                // 
+#define P_VALUE         0.05                                // PID values
+#define I_VALUE         5  
+#define D_VALUE         0.015
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 
@@ -38,12 +38,14 @@ PID     Controller(P_VALUE, I_VALUE, D_VALUE, RATE);
 
 
 // global varibles
+bool            armed = false;          // this variable is for security
 unsigned long   dt_get_data = 0; // TODO: dt namen
 unsigned long   time_get_data = 0;
 unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
 float           angle[3] = {0,0,0}; // calculated values of the position [0: x,roll | 1: y,pitch | 2: z,yaw]
 float           tempangle = 0; // temporärer winkel für yaw ohne kompass
+float           Gyro_angle[3] ={0,0,0};
 float co; // PID test
 
 void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
@@ -62,29 +64,51 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     dt_get_data = GlobalTimer.read_us() - time_get_data; // time in us since last loop
     time_get_data = GlobalTimer.read_us();      // set new time for next measurement
     
+    Gyro_angle[0] += Gyro.data[0] *dt_get_data/15000000.0;
+    Gyro_angle[1] += Gyro.data[1] *dt_get_data/15000000.0;
+    Gyro_angle[2] += Gyro.data[2] *dt_get_data/15000000.0;
+    
     // calculate angles for roll, pitch an yaw
     angle[0] += (Acc.angle[0] - angle[0])/50 + Gyro.data[0] *dt_get_data/15000000.0;
     angle[1] += (Acc.angle[1]+3 - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
     tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
-    angle[2] += Gyro.data[2] *dt_get_data/15000000.0; // gyro only here
+    angle[2] = Gyro_angle[2]; // gyro only here
     
     // PID controlling
     Controller.setProcessValue(angle[1]);
     
+    // Aming/ disarming
+    if(RC[2].read() < 1020 && RC[3].read() < 1020)
+        armed = false;
+    if(RC[2].read() < 500 || RC[1].read() < 500 || RC[0].read() < 500)
+        armed = false;
+    if(RC[2].read() < 1020 && RC[3].read() > 1850)
+        armed = true;
+    
     // calculate new motorspeeds
     co = Controller.compute() - 1000;
-    if (RC[2].read() > 1100) // zu SICHERHEIT! zum testen (später ersetzen armed unarmed)
+    if (armed) // zur SICHERHEIT!
     {
+        #if 0
+            Motor[0] = RC[2].read();
+            Motor[1] = RC[2].read();
+            Motor[2] = RC[2].read();
+            Motor[3] = RC[2].read();
+        #else
+            Motor[0] = RC[2].read()+co;
+            Motor[2] = RC[2].read()-co;
+        #endif
+        
         /*Motor[0] = RC[2].read()+((RC[0].read() - 1500)/10.0)+40;
         Motor[2] = RC[2].read()-((RC[0].read() - 1500)/10.0)-40;*/
-        Motor[0] = RC[2].read()+co+40;
-        Motor[2] = RC[2].read()-co-40;
+        /**/
     } else {
         Motor[0] = 1000;
         Motor[1] = 1000;
         Motor[2] = 1000;
         Motor[3] = 1000;
-    }
+    }    
+    
     /*Motor[0] = 1000 + (100 - (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000; // test für erste reaktion der motoren entgegen der Auslenkung
     Motor[1] = 1000 + (100 - (angle[0] * 500/90)) * (RC[2].read() - 1000) / 1000;
     Motor[2] = 1000 + (100 + (angle[1] * 500/90)) * (RC[2].read() - 1000) / 1000;
@@ -117,24 +141,35 @@ int main() { // main programm only used for initialisation and debug output
     Datagetter.attach(&get_Data, RATE);     // start to get data all RATEms
     
     while(1) { 
-        pc.locate(10,5); // PC output
+        pc.locate(30,0); // PC output
         pc.printf("dt:%dms   dt_sensors:%dus    Altitude:%6.1fm   ", dt_get_data/1000, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
-        pc.locate(10,8);
-        pc.printf("Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", angle[0], angle[1], angle[2]);
-        pc.locate(10,9);
-        pc.printf("ACC: Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", Acc.angle[0], Acc.angle[1], Acc.angle[2]);
-        pc.locate(10,10);
-        pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);
-        pc.locate(10,12);
-        pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
-        pc.locate(10,13);
-        //pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]); no more accessible its private
-        pc.locate(10,15);
+        pc.locate(5,1);
+        if(armed)
+            pc.printf("ARMED!!!!!!!!!!!!!");
+        else
+            pc.printf("DIS_ARMED            ");
+        pc.locate(5,3);
+        pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", angle[0], angle[1], angle[2]);
+        
+        pc.locate(5,5);
+        pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
+        pc.locate(5,6);
+        pc.printf("Gyro_angle: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro_angle[0], Gyro_angle[1], Gyro_angle[2]);
+        
+        pc.locate(5,8);
+        pc.printf("Acc.data: X:%6d  Y:%6d  Z:%6d", Acc.data[0], Acc.data[1], Acc.data[2]); 
+        pc.locate(5,9);
+        pc.printf("Acc.angle: Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", Acc.angle[0], Acc.angle[1], Acc.angle[2]);
+        
+        pc.locate(5,11);
         pc.printf("PID Test: %6.1f", co);
+        
+        pc.locate(10,15);
+        pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);
         pc.locate(10,16);
-        pc.printf("Gyro_data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
+        pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
         pc.locate(10,17);
-        pc.printf("Acc_data: X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
+        //pc.printf("Comp_scale: %6.4f %6.4f %6.4f   ", Comp.scale[0], Comp.scale[1], Comp.scale[2]); no more accessible its private
         pc.locate(10,18);
         pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
         

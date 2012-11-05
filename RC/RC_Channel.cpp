@@ -25,7 +25,7 @@ void RC_Channel::fall()
     timer.stop();
     int tester = timer.read_us();
     if(tester >= 1000 && tester <=2000)
-        time = tester;
+        time = (tester-70);  // TODO: skalierung mit calibrierung (speichern....)
     timer.reset();
     timer.start();
 }

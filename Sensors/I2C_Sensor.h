@@ -26,7 +26,7 @@ class I2C_Sensor
         
         // raw data and function to measure it
         int raw[3];
-        //virtual void readraw() = 0;
+        virtual void readraw() = 0;
         
     private:
         I2C i2c;            // I2C-Bus

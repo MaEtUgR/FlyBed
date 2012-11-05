@@ -6,7 +6,7 @@
 #include "mbed.h"
 #include "I2C_Sensor.h"
 
-#define L3G4200D_I2C_ADDRESS    0xD0               // TODO: Adressen???
+#define L3G4200D_I2C_ADDRESS    0xD0
 
 // register addresses
 #define L3G4200D_WHO_AM_I       0x0F
@@ -49,6 +49,7 @@ class L3G4200D : public I2C_Sensor
         
     private:
         float offset[3];                    // offset that's subtracted from every measurement
+        virtual void readraw();
 };
 
 #endif

@@ -35,9 +35,9 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     
     const int count = 50;
     for (int i = 0; i < count; i++) {                   // read 50 times the data in a very short time
-        read();
+        readraw();
         for (int j = 0; j < 3; j++)
-            Gyro_calib[j] += data[j];
+            Gyro_calib[j] += raw[j];
         wait(0.001);          // TODO: maybe less or no wait !!
     }
     
@@ -47,21 +47,24 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
 
 void L3G4200D::read()
 {
-    char buffer[6];                                     // 8-Bit pieces of axis data
+    readraw();                                          // read raw measurement data
     
-    //buffer[0] = L3G4200D_OUT_X_L | (1 << 7);          // TODO: wiiiiiiso?!
-    
-    readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C
-    
-    data[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
-    data[1] = (short) (buffer[3] << 8 | buffer[2]);
-    data[2] = (short) (buffer[5] << 8 | buffer[4]);
-    
-    for (int j = 0; j < 3; j++)
-            data[j] -= offset[j];                       // add offset from calibration
+    for (int i = 0; i < 3; i++)
+            data[i] = raw[i] - offset[i];               // subtract offset from calibration
 }
 
 int L3G4200D::readTemp()
 {
     return (short) readRegister(L3G4200D_OUT_TEMP);     // read the sensors register for the temperature
+}
+
+void L3G4200D::readraw()
+{
+    char buffer[6];                                     // 8-Bit pieces of axis data
+    
+    readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C   // TODO: wiiiiiiso?!   | (1 << 7)
+    
+    raw[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
+    raw[1] = (short) (buffer[3] << 8 | buffer[2]);
+    raw[2] = (short) (buffer[5] << 8 | buffer[4]);
 }
