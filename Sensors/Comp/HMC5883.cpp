@@ -32,8 +32,8 @@ void HMC5883::calibrate(int s)
     {
         readraw();
         for(int i = 0; i < 3; i++) {
-            Min[i]= Min[i] < raw[i] ? Min[i] : raw[i];      // after each measurement check if there's a new minimum or maximum
-            Max[i]= Max[i] > raw[i] ? Max[i] : raw[i];
+            Min[i] = Min[i] < raw[i] ? Min[i] : raw[i];      // after each measurement check if there's a new minimum or maximum
+            Max[i] = Max[i] > raw[i] ? Max[i] : raw[i];
         }
     }
     

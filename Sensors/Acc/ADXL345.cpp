@@ -1,8 +1,6 @@
 #include "ADXL345.h"
-#include "mbed.h"
 
 ADXL345::ADXL345(PinName sda, PinName scl) : i2c(sda, scl) {
-
     //400kHz, allowing us to use the fastest data rates.
     //there are other chips on board, sorry
     i2c.frequency(400000);   
@@ -11,7 +9,6 @@ ADXL345::ADXL345(PinName sda, PinName scl) : i2c(sda, scl) {
     tx[0] = ADXL345_BW_RATE_REG;
     tx[1] = ADXL345_1600HZ; //value greater than or equal to 0x0A is written into the rate bits (Bit D3 through Bit D0) in the BW_RATE register 
     i2c.write( ADXL345_WRITE , tx, 2);  
-
     //Data format (for +-16g) - This is done by setting Bit D3 of the DATA_FORMAT register (Address 0x31) and writing a value of 0x03 to the range bits (Bit D1 and Bit D0) of the DATA_FORMAT register (Address 0x31).
    
  char rx[2];

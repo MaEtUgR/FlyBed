@@ -45,6 +45,7 @@ class L3G4200D : public I2C_Sensor
     public:            
         L3G4200D(PinName sda, PinName scl); // constructor, uses I2C_Sensor class
         virtual void read();                // read all axis from register to array data
+        void calibrate();                   // calibrate the gyro (get an offset while not moving)
         int readTemp();                     // read temperature from sensor
         
     private:

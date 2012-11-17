@@ -4,18 +4,16 @@
 Servo_PWM::Servo_PWM(PinName Pin) : ServoPin(Pin) {
     ServoPin.period(0.020);
     ServoPin = 0;
-    initialize(); // TODO: Works?
+    initialize();
 }
 
 void Servo_PWM::initialize() {
     // initialize ESC
-    SetPosition(1000); // full throttle
-    wait(0.01);         // for 0.01 secs
-    SetPosition(1000);  // low throttle
+    SetPosition(0);  // zero throttle
 }
 
 void Servo_PWM::SetPosition(int position) {
-    ServoPin.pulsewidth(position/1000000.0);
+    ServoPin.pulsewidth((position+1000)/1000000.0);
 }
 
 void Servo_PWM::operator=(int position) {

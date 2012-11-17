@@ -27,22 +27,7 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     
     writeRegister(L3G4200D_CTRL_REG1, 0x0F);            // starts Gyro measurement
     
-    // calibrate gyro with an average of count samples (result of calibration stored in offset[])
-    for (int j = 0; j < 3; j++)
-            offset[j] = 0;
-            
-    float Gyro_calib[3] = {0,0,0};                      // temporary var for the sum of calibration measurement
-    
-    const int count = 50;
-    for (int i = 0; i < count; i++) {                   // read 50 times the data in a very short time
-        readraw();
-        for (int j = 0; j < 3; j++)
-            Gyro_calib[j] += raw[j];
-        wait(0.001);          // TODO: maybe less or no wait !!
-    }
-    
-    for (int j = 0; j < 3; j++)
-        offset[j] = Gyro_calib[j]/count;                // take the average of the calibration measurements
+    calibrate();
 }
 
 void L3G4200D::read()
@@ -67,4 +52,21 @@ void L3G4200D::readraw()
     raw[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
     raw[1] = (short) (buffer[3] << 8 | buffer[2]);
     raw[2] = (short) (buffer[5] << 8 | buffer[4]);
+}
+
+void L3G4200D::calibrate()
+{
+    // calibrate gyro with an average of count samples (result of calibration stored in offset[])
+    float Gyro_calib[3] = {0,0,0};                      // temporary var for the sum of calibration measurement
+    
+    const int count = 50;
+    for (int i = 0; i < count; i++) {                   // read 50 times the data in a very short time
+        readraw();
+        for (int j = 0; j < 3; j++)
+            Gyro_calib[j] += raw[j];
+        wait(0.001);          // TODO: maybe less or no wait !!
+    }
+    
+    for (int i = 0; i < 3; i++)
+        offset[i] = Gyro_calib[i]/count;                // take the average of the calibration measurements
 }

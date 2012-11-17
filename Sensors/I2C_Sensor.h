@@ -8,7 +8,7 @@
 class I2C_Sensor
 {           
     public:
-        I2C_Sensor(PinName sda, PinName scl, int8_t address);
+        I2C_Sensor(PinName sda, PinName scl, char address);
         
         float data[3];                  // where the measured data is saved
         virtual void read() = 0;        // read all axis from register to array data
@@ -30,7 +30,7 @@ class I2C_Sensor
         
     private:
         I2C i2c;            // I2C-Bus
-        int8_t i2c_address; // address
+        char i2c_address;   // address
         
         LocalFileSystem local; // file access to save calibration values
 };
