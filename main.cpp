@@ -12,9 +12,9 @@
 //#define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi) //TODO not needed??
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
-#define P_VALUE         0.05                                // PID values
-#define I_VALUE         20  
-#define D_VALUE         0.015
+#define P_VALUE         0.035                                // PID values
+#define I_VALUE         3.5  
+#define D_VALUE         0.04
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB and your PC
@@ -51,7 +51,7 @@ float           motor_value[] = {0,0,0,0};
 
 float motor_calc(int rc_value, float contr_value)
 {
-    return rc_value + contr_value > 0 ? rc_value + contr_value : 0; // nicht unter 0 sinken TODO: nicht Motor halten -> langsame Reaktion
+    return rc_value + contr_value > 50 ? rc_value + contr_value : 50; // nicht unter 0 sinken TODO: nicht Motor halten -> langsame Reaktion
 }
 
 void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
@@ -183,10 +183,13 @@ int main() { // main programm only used for initialisation and debug output
             for(int i=0;i<3;i++)
                 pc.printf("  %d: %6.1f", i, controller_value[i]);
             
-            pc.locate(5,13);
+            pc.locate(5,12);
             pc.printf("Motor Result:");
             for(int i=0;i<4;i++)
                 pc.printf("  %d: %6.1f", i, motor_value[i]);
+            
+            pc.locate(5,14);
+            pc.printf(" roll: %d     pitch: %d    ", -(int)((RC[0].read()-440)/440.0*90.0), -(int)((RC[1].read()-430)/430.0*90.0));
             
             pc.locate(10,15);
             pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);
