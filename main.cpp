@@ -13,7 +13,7 @@
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
 #define P_VALUE         0.05                                // PID values
-#define I_VALUE         100  
+#define I_VALUE         20  
 #define D_VALUE         0.015
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
@@ -35,9 +35,9 @@ RC_Channel  RC[] = {p11, p12, p13, p14};    // noooo p19/p20 !
 Servo_PWM   Motor[] = {p21, p22, p23, p24}; // p21 - p26 only !
 
 // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
-PID     Controller[] = {PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE)}; // TODO: RATE != dt immer anpassen
+PID     Controller[] = {PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(0.02, 100, 0.005, RATE)}; // TODO: RATE != dt immer anpassen
 
-// global varibles
+// global variables
 bool            armed = false;          // this variable is for security
 unsigned long   dt_get_data = 0; // TODO: dt namen
 unsigned long   time_get_data = 0;
@@ -49,7 +49,7 @@ float           Gyro_angle[3] ={0,0,0};
 float           controller_value[] = {0,0,0};
 float           motor_value[] = {0,0,0,0};
 
-int motor_calc(int rc_value, float contr_value)
+float motor_calc(int rc_value, float contr_value)
 {
     return rc_value + contr_value > 0 ? rc_value + contr_value : 0; // nicht unter 0 sinken TODO: nicht Motor halten -> langsame Reaktion
 }
@@ -82,7 +82,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     
     // PID controlling
     if (!(RC[0].read() == -100)) {
-        Controller[0].setSetPoint((int)((RC[0].read()-440)/440.0*90.0));
+        Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
         Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
     }
     for(int i=0;i<3;i++) {
@@ -100,21 +100,23 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     
     // calculate new motorspeeds
     if (armed) // for SECURITY!
-    {
+    {       
             // Pitch
             motor_value[0] = motor_calc(RC[2].read(), +controller_value[1]);
             motor_value[2] = motor_calc(RC[2].read(), -controller_value[1]);
             
-            // Roll
-            motor_value[1] = motor_calc(RC[2].read(), +controller_value[0]);
-            motor_value[3] = motor_calc(RC[2].read(), -controller_value[0]);
-            
-            // Yaw
-            //motor_value[0] -= controller_value[2];
-            //motor_value[2] -= controller_value[2];
-            
-            //motor_value[1] += controller_value[2];
-            //motor_value[3] += controller_value[2];
+            #if 0
+                // Roll
+                motor_value[1] = motor_calc(RC[2].read(), +controller_value[0]);
+                motor_value[3] = motor_calc(RC[2].read(), -controller_value[0]);
+                
+                // Yaw
+                motor_value[0] -= controller_value[2];
+                motor_value[2] -= controller_value[2];
+                
+                motor_value[1] += controller_value[2];
+                motor_value[3] += controller_value[2];
+            #endif
             
     } else {
         for(int i=0;i<4;i++)
@@ -122,7 +124,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     }
     // Set new motorspeeds
     for(int i=0;i<4;i++)
-        Motor[i] = motor_value[i];
+        Motor[i] = (int)motor_value[i];
 }
 
 int main() { // main programm only used for initialisation and debug output
@@ -181,7 +183,10 @@ int main() { // main programm only used for initialisation and debug output
             for(int i=0;i<3;i++)
                 pc.printf("  %d: %6.1f", i, controller_value[i]);
             
-            
+            pc.locate(5,13);
+            pc.printf("Motor Result:");
+            for(int i=0;i<4;i++)
+                pc.printf("  %d: %6.1f", i, motor_value[i]);
             
             pc.locate(10,15);
             pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);

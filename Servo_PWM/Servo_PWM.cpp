@@ -13,7 +13,7 @@ void Servo_PWM::initialize() {
 }
 
 void Servo_PWM::SetPosition(int position) {
-    ServoPin.pulsewidth((position+1000)/1000000.0);
+    ServoPin.pulsewidth_us(position+1000);
 }
 
 void Servo_PWM::operator=(int position) {
