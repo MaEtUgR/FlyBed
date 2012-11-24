@@ -12,9 +12,17 @@
 //#define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi) //TODO not needed??
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
+
+#define P_VALUE         0.05                                // PID values
+#define I_VALUE         20                                  // Werte die bis jetzt am besten funktioniert haben
+#define D_VALUE         0.015
+
+/*
+// agressive Werte
 #define P_VALUE         0.035                                // PID values
 #define I_VALUE         3.5  
 #define D_VALUE         0.04
+*/
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB and your PC
@@ -70,25 +78,34 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     dt_get_data = GlobalTimer.read_us() - time_get_data; // time in us since last loop
     time_get_data = GlobalTimer.read_us();      // set new time for next measurement
     
-    Gyro_angle[0] += Gyro.data[0] *dt_get_data/15000000.0;
-    Gyro_angle[1] += Gyro.data[1] *dt_get_data/15000000.0;
-    Gyro_angle[2] += Gyro.data[2] *dt_get_data/15000000.0;
+    for(int i = 0; i < 3; i++)
+        Gyro_angle[i] += Gyro.data[i] *dt_get_data/15000000.0;
     
     // calculate angles for roll, pitch an yaw
-    angle[0] += (Acc.angle[0] - angle[0])/50 + Gyro.data[0] *dt_get_data/15000000.0;
-    angle[1] += (Acc.angle[1]+3 - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
-    //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
-    angle[2] = Gyro_angle[2]; // gyro only here
+    #if 0 // alte berechnung, vielleicht Accelerometer zu stark gewichtet
+        angle[0] += (Acc.angle[0] - angle[0])/50 + Gyro.data[0] *dt_get_data/15000000.0;
+        angle[1] += (Acc.angle[1]+3 - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
+        //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
+        angle[2] = Gyro_angle[2]; // gyro only here
+    #endif
     
-    // PID controlling
-    if (!(RC[0].read() == -100)) {
-        Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
-        Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
-    }
-    for(int i=0;i<3;i++) {
-        Controller[i].setProcessValue(angle[i]);
-        controller_value[i] = Controller[i].compute() - 1000;
-    }
+    #if 1 // neuer Test 1 (Formel von http://diydrones.com/m/discussion?id=705844%3ATopic%3A669858)
+        angle[0] = (0.98*(angle[0]+(Gyro.data[0] *dt_get_data/15000000.0)))+(0.02*(Acc.angle[0]));
+        angle[1] = (0.98*(angle[1]+(Gyro.data[1] *dt_get_data/15000000.0)))+(0.02*(Acc.angle[1] + 3)); // TODO Offset accelerometer einstellen
+        //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
+        angle[2] = Gyro_angle[2]; // gyro only here
+    #endif
+    
+    #if 0 // neuer Test 2 (funktioniert wahrscheinlich nicht, denkfehler)
+        angle[0] += Gyro_angle[0] * 0.98 + Acc.angle[0] * 0.02;
+        angle[1] += Gyro_angle[1] * 0.98 + (Acc.angle[1] + 3) * 0.02; // TODO: Calibrierung Acc
+        angle[2] = Gyro_angle[2]; // gyro only here
+    #endif
+    
+    #if 0 // rein Gyro
+        for(int i = 0; i < 3; i++)
+            angle[i] = Gyro_angle[i];
+    #endif
     
     // Arming / disarming
     if(RC[2].read() < 20 && RC[3].read() > 850)
@@ -98,14 +115,25 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     if(RC[3].read() < -10 || RC[2].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10)
         armed = false;
     
-    // calculate new motorspeeds
     if (armed) // for SECURITY!
     {       
+            // PID controlling
+            if (!(RC[0].read() == -100)) {
+                Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
+                Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
+                //Controller[2].setSetPoint(-(int)((RC[3].read()-424)/424.0*180.0)); // TODO: muss später += werden
+            }
+            for(int i=0;i<3;i++) {
+                Controller[i].setProcessValue(angle[i]);
+                controller_value[i] = Controller[i].compute() - 1000;
+            }
+            
+            // Calculate new motorspeeds
             // Pitch
             motor_value[0] = motor_calc(RC[2].read(), +controller_value[1]);
             motor_value[2] = motor_calc(RC[2].read(), -controller_value[1]);
             
-            #if 0
+            #if 1
                 // Roll
                 motor_value[1] = motor_calc(RC[2].read(), +controller_value[0]);
                 motor_value[3] = motor_calc(RC[2].read(), -controller_value[0]);
@@ -119,6 +147,8 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
             #endif
             
     } else {
+        for(int i=0;i<3;i++)
+            Controller[i].reset();
         for(int i=0;i<4;i++)
             motor_value[i] = 0;
     }
@@ -137,6 +167,7 @@ int main() { // main programm only used for initialisation and debug output
         Controller[i].setMode(MANUAL_MODE);//AUTO_MODE);
         Controller[i].setSetPoint(0);
     }
+    Controller[2].setInputLimits(-180.0, 180.0); // yaw 360 grad
     
     #ifdef PC_CONNECTED
         #ifdef COMPASSCALIBRATE
@@ -230,6 +261,5 @@ int main() { // main programm only used for initialisation and debug output
             LEDs.set(3);
             LEDs.set(4);
         }
-        
     }
 }
