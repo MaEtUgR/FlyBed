@@ -13,9 +13,10 @@
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
 
 
-#define P_VALUE         0.05                                // PID values
-#define I_VALUE         20                                  // Werte die bis jetzt am besten funktioniert haben
-#define D_VALUE         0.015
+#define P_VALUE         0.02                                // PID values
+#define I_VALUE         20                                   // Werte die bis jetzt am besten funktioniert haben
+#define D_VALUE         0.004
+
 
 /*
 // agressive Werte
@@ -35,6 +36,8 @@ LED         LEDs;
 #ifdef PC_CONNECTED
     PC          pc(USBTX, USBRX, 115200);
 #endif
+LocalFileSystem local("local");               // Create the local filesystem under the name "local"
+FILE *Logger;
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
@@ -56,11 +59,6 @@ float           tempangle = 0; // temporärer winkel für yaw ohne kompass
 float           Gyro_angle[3] ={0,0,0};
 float           controller_value[] = {0,0,0};
 float           motor_value[] = {0,0,0,0};
-
-float motor_calc(int rc_value, float contr_value)
-{
-    return rc_value + contr_value > 50 ? rc_value + contr_value : 50; // nicht unter 0 sinken TODO: nicht Motor halten -> langsame Reaktion
-}
 
 void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
 {
@@ -84,7 +82,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     // calculate angles for roll, pitch an yaw
     #if 0 // alte berechnung, vielleicht Accelerometer zu stark gewichtet
         angle[0] += (Acc.angle[0] - angle[0])/50 + Gyro.data[0] *dt_get_data/15000000.0;
-        angle[1] += (Acc.angle[1]+3 - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
+        angle[1] += (Acc.angle[1] - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
         //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
         angle[2] = Gyro_angle[2]; // gyro only here
     #endif
@@ -108,19 +106,29 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     #endif
     
     // Arming / disarming
-    if(RC[2].read() < 20 && RC[3].read() > 850)
+    if(RC[2].read() < 20 && RC[3].read() > 850) {
         armed = true;
-    if(RC[2].read() < 30 && RC[3].read() < 30)
+        #ifdef LOGGER
+            if(Logger == NULL)
+                Logger = fopen("/local/log.csv", "a");
+        #endif
+    }
+    if((RC[2].read() < 30 && RC[3].read() < 30) || RC[3].read() < -10 || RC[2].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10) {
         armed = false;
-    if(RC[3].read() < -10 || RC[2].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10)
-        armed = false;
+        #ifdef LOGGER
+            if(Logger != NULL) {
+                fclose(Logger);
+                Logger = NULL;
+            }
+        #endif
+    }
     
     if (armed) // for SECURITY!
     {       
             // PID controlling
             if (!(RC[0].read() == -100)) {
-                Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
-                Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
+                //Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
+                //Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
                 //Controller[2].setSetPoint(-(int)((RC[3].read()-424)/424.0*180.0)); // TODO: muss später += werden
             }
             for(int i=0;i<3;i++) {
@@ -130,22 +138,33 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
             
             // Calculate new motorspeeds
             // Pitch
-            motor_value[0] = motor_calc(RC[2].read(), +controller_value[1]);
-            motor_value[2] = motor_calc(RC[2].read(), -controller_value[1]);
+            motor_value[0] = RC[2].read() +controller_value[1];
+            motor_value[2] = RC[2].read() -controller_value[1];
             
             #if 1
                 // Roll
-                motor_value[1] = motor_calc(RC[2].read(), +controller_value[0]);
-                motor_value[3] = motor_calc(RC[2].read(), -controller_value[0]);
+                motor_value[1] = RC[2].read() +controller_value[0];
+                motor_value[3] = RC[2].read() -controller_value[0];
                 
-                // Yaw
+                /*// Yaw
                 motor_value[0] -= controller_value[2];
                 motor_value[2] -= controller_value[2];
                 
                 motor_value[1] += controller_value[2];
-                motor_value[3] += controller_value[2];
+                motor_value[3] += controller_value[2];*/
             #endif
             
+            for(int i = 0; i < 4; i++) // make shure no motor stands still
+                motor_value[i] = motor_value[i] > 50 ? motor_value[i] : 50;
+            
+            #ifdef LOGGER
+                // Writing Log
+                for(int i = 0; i < 3; i++) {
+                    fprintf(Logger, "%f;", angle[i]);
+                    fprintf(Logger, "%f;", controller_value[i]);
+                }
+                fprintf(Logger, "\r\n");
+            #endif
     } else {
         for(int i=0;i<3;i++)
             Controller[i].reset();
@@ -160,6 +179,18 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
 int main() { // main programm only used for initialisation and debug output
     NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)
     
+    #ifdef LOGGER
+        Logger = fopen("/local/log.csv", "w"); // Prepare Logfile
+        for(int i = 0; i < 3; i++) {
+            fprintf(Logger, "angle[%d];", i);
+            fprintf(Logger, "controller_value[%d];", i);
+        }
+        fprintf(Logger, "\r\n");
+        fclose(Logger);
+        Logger = NULL;
+    #endif
+    
+    // Prepare PID Controllers
     for(int i=0;i<3;i++) {
         Controller[i].setInputLimits(-90.0, 90.0);
         Controller[i].setOutputLimits(0.0, 2000.0);
