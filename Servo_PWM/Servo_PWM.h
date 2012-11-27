@@ -5,35 +5,13 @@
 
 #include "mbed.h"
 
-/** Class to control a servo on any pin, without using pwm
- *
- * Example:
- * @code
- * // Keep sweeping servo from left to right
- * #include "mbed.h"
- * #include "Servo.h"
- * 
- * Servo Servo1(p20);
- *
- * Servo1.Enable(1500,20000);
- *
- * while(1) {
- *     for (int pos = 1000; pos < 2000; pos += 25) {
- *         Servo1.SetPosition(pos);  
- *         wait_ms(20);
- *     }
- *     for (int pos = 2000; pos > 1000; pos -= 25) {
- *         Servo1.SetPosition(pos); 
- *         wait_ms(20); 
- *     }
- * }
- * @endcode
+/** Class to control a servo by using PWM
  */
 
 class Servo_PWM {
 
 public:
-    /** Create a new Servo object on any mbed pin
+    /** Create a new Servo object on any PWM pin
      *
      * @param Pin Pin on mbed to connect servo to
      */
@@ -41,14 +19,18 @@ public:
     
     /** Change the position of the servo. Position in us
      *
-     * @param NewPos The new value of the servos position (us)
+     * @param position The new value of the servos position between 0 and 1000 (gets 1000-2000) (us)
      */
     void SetPosition(int position);
     
-    //operator for confortable positioning
+    /** Operator for confortable positioning
+     *
+     * @param position see SetPosition
+     */
     void operator=(int position);
     
-    // initialize ESC
+    /** initialize ESC
+     */
     void initialize();
 
 private:

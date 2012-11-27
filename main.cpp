@@ -8,22 +8,14 @@
 #include "RC_Channel.h" // RemoteControl Chnnels with PPM
 #include "Servo_PWM.h"  // Motor PPM using PwmOut
 #include "PID.h"        // PID Library by Aaron Berk
+#include "IMU_Filter.h" // Class to calculate position angles
+#include "Mixer.h"      // Class to calculate motorspeeds from Angles, Regulation and RC-Signals
 
-//#define RAD2DEG         57.295779513082320876798154814105   // ratio between radians and degree (360/2Pi) //TODO not needed??
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
-
 
 #define P_VALUE         0.02                                // PID values
 #define I_VALUE         20                                   // Werte die bis jetzt am besten funktioniert haben
 #define D_VALUE         0.004
-
-
-/*
-// agressive Werte
-#define P_VALUE         0.035                                // PID values
-#define I_VALUE         3.5  
-#define D_VALUE         0.04
-*/
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB and your PC
@@ -42,23 +34,22 @@ L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
 BMP085_old      Alt(p28, p27);
-RC_Channel  RC[] = {p11, p12, p13, p14};    // noooo p19/p20 !
-Servo_PWM   Motor[] = {p21, p22, p23, p24}; // p21 - p26 only !
+RC_Channel  RC[] = {p11, p12, p13, p14};    // no p19/p20 !
+Servo_PWM   ESC[] = {p21, p22, p23, p24}; // p21 - p26 only because PWM!
+IMU_Filter  IMU;    // don't write () after constructor for no arguments!
+Mixer       MIX;      
 
 // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 PID     Controller[] = {PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(0.02, 100, 0.005, RATE)}; // TODO: RATE != dt immer anpassen
 
 // global variables
 bool            armed = false;          // this variable is for security
-unsigned long   dt_get_data = 0; // TODO: dt namen
-unsigned long   time_get_data = 0;
+unsigned long   dt = 0;
+unsigned long   time_for_dt = 0;
 unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
-float           angle[3] = {0,0,0}; // calculated values of the position [0: x,roll | 1: y,pitch | 2: z,yaw]
-float           tempangle = 0; // temporärer winkel für yaw ohne kompass
-float           Gyro_angle[3] ={0,0,0};
+float           tempangle = 0; // temporärer winkel für yaw mit kompass
 float           controller_value[] = {0,0,0};
-float           motor_value[] = {0,0,0,0};
 
 void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
 {
@@ -73,37 +64,13 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     dt_read_sensors = GlobalTimer.read_us() - time_read_sensors;
     
     // meassure dt
-    dt_get_data = GlobalTimer.read_us() - time_get_data; // time in us since last loop
-    time_get_data = GlobalTimer.read_us();      // set new time for next measurement
+    dt = GlobalTimer.read_us() - time_for_dt; // time in us since last loop
+    time_for_dt = GlobalTimer.read_us();      // set new time for next measurement
     
-    for(int i = 0; i < 3; i++)
-        Gyro_angle[i] += Gyro.data[i] *dt_get_data/15000000.0;
+    // TODO: RC_signal füllen!!!
     
-    // calculate angles for roll, pitch an yaw
-    #if 0 // alte berechnung, vielleicht Accelerometer zu stark gewichtet
-        angle[0] += (Acc.angle[0] - angle[0])/50 + Gyro.data[0] *dt_get_data/15000000.0;
-        angle[1] += (Acc.angle[1] - angle[1])/50 + Gyro.data[1] *dt_get_data/15000000.0;// TODO Offset accelerometer einstellen
-        //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
-        angle[2] = Gyro_angle[2]; // gyro only here
-    #endif
-    
-    #if 1 // neuer Test 1 (Formel von http://diydrones.com/m/discussion?id=705844%3ATopic%3A669858)
-        angle[0] = (0.98*(angle[0]+(Gyro.data[0] *dt_get_data/15000000.0)))+(0.02*(Acc.angle[0]));
-        angle[1] = (0.98*(angle[1]+(Gyro.data[1] *dt_get_data/15000000.0)))+(0.02*(Acc.angle[1] + 3)); // TODO Offset accelerometer einstellen
-        //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt_get_data/15000000.0;
-        angle[2] = Gyro_angle[2]; // gyro only here
-    #endif
-    
-    #if 0 // neuer Test 2 (funktioniert wahrscheinlich nicht, denkfehler)
-        angle[0] += Gyro_angle[0] * 0.98 + Acc.angle[0] * 0.02;
-        angle[1] += Gyro_angle[1] * 0.98 + (Acc.angle[1] + 3) * 0.02; // TODO: Calibrierung Acc
-        angle[2] = Gyro_angle[2]; // gyro only here
-    #endif
-    
-    #if 0 // rein Gyro
-        for(int i = 0; i < 3; i++)
-            angle[i] = Gyro_angle[i];
-    #endif
+    IMU.compute(dt, Gyro.data, Acc.data);
+    MIX.compute(dt, IMU.angle, RC[2].read(), controller_value);
     
     // Arming / disarming
     if(RC[2].read() < 20 && RC[3].read() > 850) {
@@ -132,30 +99,12 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
                 //Controller[2].setSetPoint(-(int)((RC[3].read()-424)/424.0*180.0)); // TODO: muss später += werden
             }
             for(int i=0;i<3;i++) {
-                Controller[i].setProcessValue(angle[i]);
+                Controller[i].setProcessValue(IMU.angle[i]);
                 controller_value[i] = Controller[i].compute() - 1000;
             }
-            
-            // Calculate new motorspeeds
-            // Pitch
-            motor_value[0] = RC[2].read() +controller_value[1];
-            motor_value[2] = RC[2].read() -controller_value[1];
-            
-            #if 1
-                // Roll
-                motor_value[1] = RC[2].read() +controller_value[0];
-                motor_value[3] = RC[2].read() -controller_value[0];
-                
-                /*// Yaw
-                motor_value[0] -= controller_value[2];
-                motor_value[2] -= controller_value[2];
-                
-                motor_value[1] += controller_value[2];
-                motor_value[3] += controller_value[2];*/
-            #endif
-            
-            for(int i = 0; i < 4; i++) // make shure no motor stands still
-                motor_value[i] = motor_value[i] > 50 ? motor_value[i] : 50;
+            // Set new motorspeeds
+            for(int i=0;i<4;i++)
+                ESC[i] = (int)MIX.Motor_speed[i];
             
             #ifdef LOGGER
                 // Writing Log
@@ -166,18 +115,15 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
                 fprintf(Logger, "\r\n");
             #endif
     } else {
+        for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
+                ESC[i] = 0;
         for(int i=0;i<3;i++)
-            Controller[i].reset();
-        for(int i=0;i<4;i++)
-            motor_value[i] = 0;
+            Controller[i].reset(); // TODO: schon ok so? anfangspeek?!
     }
-    // Set new motorspeeds
-    for(int i=0;i<4;i++)
-        Motor[i] = (int)motor_value[i];
 }
 
-int main() { // main programm only used for initialisation and debug output
-    NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)
+int main() { // main programm for initialisation and debug output
+    NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)(this is to prevent the RC interrupt from waiting until ticker is finished)
     
     #ifdef LOGGER
         Logger = fopen("/local/log.csv", "w"); // Prepare Logfile
@@ -198,7 +144,7 @@ int main() { // main programm only used for initialisation and debug output
         Controller[i].setMode(MANUAL_MODE);//AUTO_MODE);
         Controller[i].setSetPoint(0);
     }
-    Controller[2].setInputLimits(-180.0, 180.0); // yaw 360 grad
+    //Controller[2].setInputLimits(-180.0, 180.0); // yaw 360 grad TODO: Yawsteuerung mit -180 bis 180 grad
     
     #ifdef PC_CONNECTED
         #ifdef COMPASSCALIBRATE
@@ -220,38 +166,28 @@ int main() { // main programm only used for initialisation and debug output
     while(1) { 
         #ifdef PC_CONNECTED
             pc.locate(30,0); // PC output
-            pc.printf("dt:%dms   dt_sensors:%dus    Altitude:%6.1fm   ", dt_get_data/1000, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
+            pc.printf("dt:%dms   dt_sensors:%dus    Altitude:%6.1fm   ", dt/1000, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
             pc.locate(5,1);
             if(armed)
                 pc.printf("ARMED!!!!!!!!!!!!!");
             else
                 pc.printf("DIS_ARMED            ");
             pc.locate(5,3);
-            pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", angle[0], angle[1], angle[2]);
-            pc.printf("\n\r   control Roll: %d   control Pitch: %d           ", (int)((RC[0].read()-440)/440.0*90.0), (int)((RC[1].read()-430)/430.0*90.0));
+            pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
             
             pc.locate(5,5);
             pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
-            pc.locate(5,6);
-            pc.printf("Gyro_angle: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro_angle[0], Gyro_angle[1], Gyro_angle[2]);
             
             pc.locate(5,8);
             pc.printf("Acc.data: X:%6d  Y:%6d  Z:%6d", Acc.data[0], Acc.data[1], Acc.data[2]); 
-            pc.locate(5,9);
-            pc.printf("Acc.angle: Roll:%6.1f Pitch:%6.1f Yaw:%6.1f    ", Acc.angle[0], Acc.angle[1], Acc.angle[2]);
             
             pc.locate(5,11);
             pc.printf("PID Result:");
             for(int i=0;i<3;i++)
                 pc.printf("  %d: %6.1f", i, controller_value[i]);
             
-            pc.locate(5,12);
-            pc.printf("Motor Result:");
-            for(int i=0;i<4;i++)
-                pc.printf("  %d: %6.1f", i, motor_value[i]);
-            
             pc.locate(5,14);
-            pc.printf(" roll: %d     pitch: %d    ", -(int)((RC[0].read()-440)/440.0*90.0), -(int)((RC[1].read()-430)/430.0*90.0));
+            pc.printf("RC: roll: %d     pitch: %d    ", -(int)((RC[0].read()-440)/440.0*90.0), -(int)((RC[1].read()-430)/430.0*90.0));
             
             pc.locate(10,15);
             pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);
@@ -287,10 +223,8 @@ int main() { // main programm only used for initialisation and debug output
         if(armed){
             LEDs.rollnext();
         } else {
-            LEDs.set(1);
-            LEDs.set(2);
-            LEDs.set(3);
-            LEDs.set(4);
+            for(int i=1;i<=4;i++)
+                LEDs.set(i);
         }
     }
 }

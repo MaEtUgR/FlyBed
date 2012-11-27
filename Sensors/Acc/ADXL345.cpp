@@ -49,18 +49,6 @@ void ADXL345::read(){
     data[0] = (short) ((int)buffer[1] << 8 | (int)buffer[0]);
     data[1] = (short) ((int)buffer[3] << 8 | (int)buffer[2]);
     data[2] = (short) ((int)buffer[5] << 8 | (int)buffer[4]);
-    
-    // calculate the angles for roll and pitch (0,1)
-    float R = sqrt(pow((float)data[0],2) + pow((float)data[1],2) + pow((float)data[2],2));
-    float temp[3];
-    
-    temp[0] = -(Rad2Deg * acos((float)data[1] / R)-90);
-    temp[1] =   Rad2Deg * acos((float)data[0] / R)-90;
-    temp[2] =   Rad2Deg * acos((float)data[2] / R);
-    
-    for(int i = 0;i < 3; i++)
-        if (temp[i] > -360 && temp[i] < 360)
-            angle[i] = temp[i];
 }
 
 void ADXL345::writeReg(char address, char data){ 

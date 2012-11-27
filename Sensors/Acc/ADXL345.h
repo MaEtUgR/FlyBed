@@ -64,8 +64,6 @@
 #define ADXL345_Y           0x01
 #define ADXL345_Z           0x02
 
-#define Rad2Deg         57.295779513082320876798154814105
-
 typedef char byte;
 
 class ADXL345
@@ -74,7 +72,6 @@ class ADXL345
         ADXL345(PinName sda, PinName scl); // constructor, uses i2c
         void read(); // read all axis to array
         int data[3]; // where the measured data is saved
-        float angle[3]; // where the calculated angles are stored
        
     private:
         I2C i2c; // i2c object to communicate
