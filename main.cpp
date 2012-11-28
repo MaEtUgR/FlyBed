@@ -34,7 +34,7 @@ L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
 BMP085_old      Alt(p28, p27);
-RC_Channel  RC[] = {p11, p12, p13, p14};    // no p19/p20 !
+RC_Channel  RC[] = {RC_Channel(p11,1), RC_Channel(p12,2), RC_Channel(p13,3), RC_Channel(p14,4)};    // no p19/p20 !
 Servo_PWM   ESC[] = {p21, p22, p23, p24}; // p21 - p26 only because PWM!
 IMU_Filter  IMU;    // don't write () after constructor for no arguments!
 Mixer       MIX;      

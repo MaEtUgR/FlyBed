@@ -8,23 +8,23 @@ IMU_Filter::IMU_Filter()
 
 void IMU_Filter::compute(unsigned long dt, const float * Gyro_data, const int * Acc_data)
 {
-    get_Acc_angle(Acc_data);
+    // calculate angles for each sensor
     for(int i = 0; i < 3; i++)
         d_Gyro_angle[i] = Gyro_data[i] *dt/15000000.0;
+    get_Acc_angle(Acc_data);
     
-    // calculate angles for roll, pitch an yaw
+    // Complementary Filter
+    #if 1 // (formula from http://diydrones.com/m/discussion?id=705844%3ATopic%3A669858)
+        angle[0] = (0.98*(angle[0] + d_Gyro_angle[0]))+(0.02*(Acc_angle[0]));
+        angle[1] = (0.98*(angle[1] + d_Gyro_angle[1]))+(0.02*(Acc_angle[1] + 3)); // TODO Offset accelerometer einstellen
+        angle[2] += d_Gyro_angle[2]; // gyro only here TODO: Compass + 3D
+    #endif
+    
     #if 0 // alte berechnung, vielleicht Accelerometer zu stark gewichtet
         angle[0] += (Acc.angle[0] - angle[0])/50 + d_Gyro_angle[0];
         angle[1] += (Acc.angle[1] - angle[1])/50 + d_Gyro_angle[1];// TODO Offset accelerometer einstellen
         //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt/15000000.0;
         angle[2] = Gyro_angle[2]; // gyro only here
-    #endif
-    
-    #if 1 // neuer Test 1 (Formel von http://diydrones.com/m/discussion?id=705844%3ATopic%3A669858)
-        angle[0] = (0.98*(angle[0]+(Gyro_data[0] *dt/15000000.0)))+(0.02*(Acc_angle[0]));
-        angle[1] = (0.98*(angle[1]+(Gyro_data[1] *dt/15000000.0)))+(0.02*(Acc_angle[1] + 3)); // TODO Offset accelerometer einstellen
-        //tempangle += (Comp.get_angle() - tempangle)/50 + Gyro.data[2] *dt/15000000.0;
-        angle[2] += d_Gyro_angle[2]; // gyro only here
     #endif
     
     #if 0 // neuer Test 2 (funktioniert wahrscheinlich nicht, denkfehler)
@@ -33,9 +33,9 @@ void IMU_Filter::compute(unsigned long dt, const float * Gyro_data, const int * 
         angle[2] = Gyro_angle[2]; // gyro only here
     #endif
     
-    #if 0 // rein Gyro
+    #if 0 // all gyro only
         for(int i = 0; i < 3; i++)
-            angle[i] = Gyro_angle[i];
+            angle[i] += d_Gyro_angle[i];
     #endif
 }
 

@@ -15,7 +15,6 @@ class IMU_Filter
         float angle[3];                                 // calculated values of the position [0: x,roll | 1: y,pitch | 2: z,yaw]
     private:
         float d_Gyro_angle[3];
-        
         void get_Acc_angle(const int * Acc_data);
         float Acc_angle[3];
 };
