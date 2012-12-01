@@ -4,7 +4,7 @@
 RC_Channel::RC_Channel(PinName mypin, int index) : myinterrupt(mypin)
 {
     RC_Channel::index = index;
-    time = -101; // start value to see if there was any value yet
+    time = -100; // start value to see if there was any value yet
     
     loadCalibrationValue(&scale, "SCALE");
     loadCalibrationValue(&offset, "OFFSET");

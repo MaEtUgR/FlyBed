@@ -12,16 +12,18 @@
 #include "Mixer.h"      // Class to calculate motorspeeds from Angles, Regulation and RC-Signals
 
 #define RATE            0.02                                // speed of the interrupt for Sensors and PID
+#define MAXPITCH        40                                  // maximal angle from horizontal that the PID is aming for
+#define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
 
 #define P_VALUE         0.02                                // PID values
-#define I_VALUE         20                                   // Werte die bis jetzt am besten funktioniert haben
+#define I_VALUE         20
 #define D_VALUE         0.004
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB and your PC
 
 Timer GlobalTimer;                      // global time to calculate processing speed
-Ticker Datagetter;                      // timecontrolled interrupt to get data form IMU and RC
+Ticker Dutycycler;                      // timecontrolled interrupt to get data form IMU and RC
 
 // initialisation of hardware (see includes for more info)
 LED         LEDs;
@@ -40,7 +42,7 @@ IMU_Filter  IMU;    // don't write () after constructor for no arguments!
 Mixer       MIX;      
 
 // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
-PID     Controller[] = {PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(0.02, 100, 0.005, RATE)}; // TODO: RATE != dt immer anpassen
+PID     Controller[] = {PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(P_VALUE, I_VALUE, D_VALUE, RATE), PID(0.02, 0, 0.004, RATE)}; // TODO: RATE != dt immer anpassen
 
 // global variables
 bool            armed = false;          // this variable is for security
@@ -50,8 +52,10 @@ unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
 float           tempangle = 0; // temporärer winkel für yaw mit kompass
 float           controller_value[] = {0,0,0};
+float           virt_angle[] = {0,0,0};
+float           yawposition = 0;
 
-void get_Data() // method which is called by the Ticker Datagetter every RATE seconds
+void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
     time_read_sensors = GlobalTimer.read_us();
     
@@ -67,10 +71,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     dt = GlobalTimer.read_us() - time_for_dt; // time in us since last loop
     time_for_dt = GlobalTimer.read_us();      // set new time for next measurement
     
-    // TODO: RC_signal füllen!!!
-    
     IMU.compute(dt, Gyro.data, Acc.data);
-    MIX.compute(dt, IMU.angle, RC[2].read(), controller_value);
     
     // Arming / disarming
     if(RC[2].read() < 20 && RC[3].read() > 850) {
@@ -92,18 +93,26 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
     
     if (armed) // for SECURITY!
     {       
+            // RC controlling
+            /*virt_angle[0] = IMU.angle[0] + (RC[0].read()-500)*MAXPITCH/500.0; // TODO: zuerst RC calibration
+            virt_angle[1] = IMU.angle[1] + (RC[1].read()-500)*MAXPITCH/500.0;
+            yawposition += (RC[3].read()-500)*YAWSPEED/500;
+            virt_angle[2] = IMU.angle[2] + yawposition;*/
+            
             // PID controlling
-            if (!(RC[0].read() == -100)) {
-                //Controller[0].setSetPoint(-(int)((RC[0].read()-440)/440.0*90.0));
-                //Controller[1].setSetPoint(-(int)((RC[1].read()-430)/430.0*90.0));
-                //Controller[2].setSetPoint(-(int)((RC[3].read()-424)/424.0*180.0)); // TODO: muss später += werden
-            }
+            /*if (!(RC[0].read() == -100)) { // the RC must be there to controll // alte version mit setpoint, nicht nötig? granzen bei yaw los? :)
+                Controller[0].setSetPoint(-((RC[0].read()-500)*MAXPITCH/500.0));    // set angles based on RC input
+                Controller[1].setSetPoint(-((RC[1].read()-500)*MAXPITCH/500.0));
+                Controller[2].setSetPoint(-((RC[3].read()-500)*180.0/500.0));
+            }*/
             for(int i=0;i<3;i++) {
-                Controller[i].setProcessValue(IMU.angle[i]);
-                controller_value[i] = Controller[i].compute() - 1000;
+                Controller[i].setProcessValue(virt_angle[i]); // give the controller the new measured angles that are allready controlled by RC
+                controller_value[i] = Controller[i].compute() - 1000; // -1000 because controller has output from 0 to 2000
             }
-            // Set new motorspeeds
-            for(int i=0;i<4;i++)
+            
+            MIX.compute(dt, IMU.angle, RC[2].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
+            
+            for(int i=0;i<4;i++)   // Set new motorspeeds
                 ESC[i] = (int)MIX.Motor_speed[i];
             
             #ifdef LOGGER
@@ -116,7 +125,7 @@ void get_Data() // method which is called by the Ticker Datagetter every RATE se
             #endif
     } else {
         for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
-                ESC[i] = 0;
+            ESC[i] = 0;
         for(int i=0;i<3;i++)
             Controller[i].reset(); // TODO: schon ok so? anfangspeek?!
     }
@@ -161,7 +170,7 @@ int main() { // main programm for initialisation and debug output
     
     // Start!
     GlobalTimer.start();
-    Datagetter.attach(&get_Data, RATE);     // start to get data all RATEms
+    Dutycycler.attach(&dutycycle, RATE);     // start to process all RATEms
     
     while(1) { 
         #ifdef PC_CONNECTED
@@ -174,20 +183,16 @@ int main() { // main programm for initialisation and debug output
                 pc.printf("DIS_ARMED            ");
             pc.locate(5,3);
             pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
-            
             pc.locate(5,5);
             pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
-            
             pc.locate(5,8);
             pc.printf("Acc.data: X:%6d  Y:%6d  Z:%6d", Acc.data[0], Acc.data[1], Acc.data[2]); 
-            
             pc.locate(5,11);
             pc.printf("PID Result:");
             for(int i=0;i<3;i++)
                 pc.printf("  %d: %6.1f", i, controller_value[i]);
-            
             pc.locate(5,14);
-            pc.printf("RC: roll: %d     pitch: %d    ", -(int)((RC[0].read()-440)/440.0*90.0), -(int)((RC[1].read()-430)/430.0*90.0));
+            pc.printf("RC controll: roll: %f     pitch: %f    yaw: %f    ", (RC[0].read()-500)*MAXPITCH/500.0, (RC[0].read()-500)*MAXPITCH/500.0, yawposition);
             
             pc.locate(10,15);
             pc.printf("Debug_Yaw:  Comp:%6.1f tempangle:%6.1f  ", Comp.get_angle(), tempangle);
@@ -198,6 +203,7 @@ int main() { // main programm for initialisation and debug output
             pc.locate(10,18);
             pc.printf("Comp_data: %6.1f %6.1f %6.1f |||| %6.1f ", Comp.data[0], Comp.data[1], Comp.data[2], Comp.get_angle());
             
+            // graphical representation for RC signal // TODO: nicht nötig, nach funktionieren der RC kalibrierung weg damit
             pc.locate(10,19);
             pc.printf("RC0: %4d :[", RC[0].read());
             for (int i = 0; i < RC[0].read()/17; i++)
@@ -219,7 +225,6 @@ int main() { // main programm for initialisation and debug output
                 pc.printf("=");
             pc.printf("                                                       ");
         #endif
-        wait(0.01);
         if(armed){
             LEDs.rollnext();
         } else {
