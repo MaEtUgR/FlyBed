@@ -7,9 +7,7 @@ Servo::Servo(PinName Pin) : ServoPin(Pin) {
 
 void Servo::initialize() {
     // initialize ESC
-    Enable(2000,20000); // full throttle
-    wait(0.01);         // for 0.01 secs
-    SetPosition(1000);  // low throttle
+    Enable(1000,20000); // low throttle 50Hz TODO: Frequency modify
 }
 
 void Servo::SetPosition(int Pos) {

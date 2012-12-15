@@ -15,7 +15,9 @@ public:
      *
      * @param Pin Pin on mbed to connect servo to
      */
-    Servo_PWM(PinName Pin);
+    Servo_PWM(PinName Pin, int frequency);
+    
+    void SetFrequency(int frequency);
     
     /** Change the position of the servo. Position in us
      *

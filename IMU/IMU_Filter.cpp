@@ -15,8 +15,8 @@ void IMU_Filter::compute(unsigned long dt, const float * Gyro_data, const int * 
     
     // Complementary Filter
     #if 1 // (formula from http://diydrones.com/m/discussion?id=705844%3ATopic%3A669858)
-        angle[0] = (0.98*(angle[0] + d_Gyro_angle[0]))+(0.02*(Acc_angle[0]));
-        angle[1] = (0.98*(angle[1] + d_Gyro_angle[1]))+(0.02*(Acc_angle[1] + 3)); // TODO Offset accelerometer einstellen
+        angle[0] = (0.99*(angle[0] + d_Gyro_angle[0]))+(0.01*(Acc_angle[0]));
+        angle[1] = (0.99*(angle[1] + d_Gyro_angle[1]))+(0.01*(Acc_angle[1] + 3)); // TODO Offset accelerometer einstellen
         angle[2] += d_Gyro_angle[2]; // gyro only here TODO: Compass + 3D
     #endif
     

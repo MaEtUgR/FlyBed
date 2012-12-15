@@ -7,7 +7,7 @@ RC_Channel::RC_Channel(PinName mypin, int index) : myinterrupt(mypin)
     time = -100; // start value to see if there was any value yet
     
     loadCalibrationValue(&scale, "SCALE");
-    loadCalibrationValue(&offset, "OFFSET");
+    loadCalibrationValue(&offset, "OFFSE");
     
     myinterrupt.rise(this, &RC_Channel::rise);
     myinterrupt.fall(this, &RC_Channel::fall);
@@ -16,6 +16,8 @@ RC_Channel::RC_Channel(PinName mypin, int index) : myinterrupt(mypin)
 
 int RC_Channel::read()
 {
+    if(time == -100)
+        return time;
     return scale * (float)(time) + offset; // calibration of the readings
 }
 
@@ -55,7 +57,7 @@ void RC_Channel::saveCalibrationValue(float * value, char * fileextension)
 void RC_Channel::loadCalibrationValue(float * value, char * fileextension)
 {
     char path[40];
-    sprintf(path, "/local/FlyBed/RC_%d_%s", index, fileextension);
+    sprintf(path, "/local/RC%d%s", index, fileextension);
     FILE *fp = fopen(path, "r");
     if (fp != NULL) {
         fscanf(fp, "%f", value);
