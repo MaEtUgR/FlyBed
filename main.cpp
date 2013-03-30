@@ -14,11 +14,12 @@
 #define RATE            0.002                               // speed of the interrupt for Sensors and PID
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define MAXPITCH        40                                  // maximal angle from horizontal that the PID is aming for
+#define RC_SENSITIVITY  20
 #define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
 
-#define P               0.35                                   // PID values
-#define I               0
-#define D               0.5
+float P = 1.5;                                   // PID values
+float I = 0;
+float D = 1;
 
 //#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB/Bluetooth and your PC
@@ -53,8 +54,9 @@ unsigned long   time_for_dt = 0;
 unsigned long   dt_read_sensors = 0;
 unsigned long   time_read_sensors = 0;
 float           tempangle = 0; // temporärer winkel für yaw mit kompass
-float           controller_value[] = {0,0,0};
+float           controller_value[] = {0,0,0};   // The calculated answer form the Controller
 float           RC_angle[] = {0,0,0};  // Angle of the RC Sticks, to steer the QC
+char            command[300]; //= {'\0'};
 
 void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
@@ -92,8 +94,9 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
         #endif
     }
     
-    for(int i=0;i<3;i++)    // calculate new angle we want the QC to have
-        RC_angle[i] = (RC[i].read()-500)*30/500.0;
+    for(int i=0;i<2;i++)    // calculate new angle we want the QC to have
+        RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
+    //RC_angle[2] += (RC[3].read()-500)*YAWSPEED/500;
     
     for(int i=0;i<3;i++) {
         Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
@@ -138,8 +141,36 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     }
 }
 
+void execute() {
+    if (command[0] == 'p')
+        P = atoi(&command[1]);
+    if (command[0] == 'i')
+        I = atoi(&command[1]);
+    if (command[0] == 'd')
+        D = atoi(&command[1]);
+}
+
+void pc_worker() {
+    char input = pc.getc();
+    
+    if (input == '\r') {
+        execute();
+        command[0] = '\0';
+    } else {
+        int i = 0;
+        while(command[i] != '\0'){
+            i++;
+            LEDs.rollnext();
+            }
+        command[i]   = input;
+        command[i+1] = '\0';
+    }
+}
+
 int main() { // main programm for initialisation and debug output
     NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)(this is to prevent the RC interrupt from waiting until ticker is finished)
+    
+    //pc.attach(&pc_worker); // zum Befehle geben
     
     #ifdef LOGGER
         Logger = fopen("/local/log.csv", "w"); // Prepare Logfile
@@ -181,6 +212,8 @@ int main() { // main programm for initialisation and debug output
                 pc.printf("DIS_ARMED            ");
             pc.locate(5,3);
             pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
+            pc.locate(5,4);
+            pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
             pc.locate(5,5);
             pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
             pc.locate(5,6);
@@ -200,6 +233,9 @@ int main() { // main programm for initialisation and debug output
             pc.printf("RC1: %4d   ", RC[1].read());
             pc.printf("RC2: %4d   ", RC[2].read());
             pc.printf("RC3: %4d   ", RC[3].read());
+            
+            pc.locate(10,21);
+            pc.printf("Commandline: %s ", command);
         #endif
         if(armed){
             LEDs.rollnext();
