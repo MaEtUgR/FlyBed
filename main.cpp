@@ -14,7 +14,7 @@
 #define RATE            0.002                               // speed of the interrupt for Sensors and PID
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define MAXPITCH        40                                  // maximal angle from horizontal that the PID is aming for
-#define RC_SENSITIVITY  20
+#define RC_SENSITIVITY  30
 #define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
 
 float P = 1.5;                                   // PID values
@@ -30,8 +30,8 @@ Ticker Dutycycler;                      // timecontrolled interrupt to get data 
 // initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
-    PC          pc(USBTX, USBRX, 115200);    // USB
-    //PC          pc(p9, p10, 115200);      // Bluetooth
+    //PC          pc(USBTX, USBRX, 115200);    // USB
+    PC          pc(p9, p10, 115200);      // Bluetooth
 #endif
 LocalFileSystem local("local");               // Create the local filesystem under the name "local"
 //FILE *Logger;
