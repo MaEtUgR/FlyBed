@@ -4,6 +4,12 @@
 #define ADXL345_H
 
 #include "mbed.h"
+#include "I2C_Sensor.h"
+
+#define ADXL345_I2C_ADDRESS    0xA6
+//the ADXL345 7-bit address is 0x53 when ALT ADDRESS is low as it is on the sparkfun chip: when ALT ADDRESS is high the address is 0x1D
+//when ALT ADDRESS pin is high:  
+//#define ADXL345_I2C_ADDRESS    0x3A 
 
 // register addresses
 #define ADXL345_DEVID_REG          0x00
@@ -37,48 +43,23 @@
 #define ADXL345_FIFO_CTL           0x38
 #define ADXL345_FIFO_STATUS        0x39
 
-// data rate codes
-#define ADXL345_3200HZ      0x0F
-#define ADXL345_1600HZ      0x0E
-#define ADXL345_800HZ       0x0D
-#define ADXL345_400HZ       0x0C
-#define ADXL345_200HZ       0x0B
-#define ADXL345_100HZ       0x0A
-#define ADXL345_50HZ        0x09
-#define ADXL345_25HZ        0x08
-#define ADXL345_12HZ5       0x07
-#define ADXL345_6HZ25       0x06
-
-// read or write bytes
-#define ADXL345_READ    0xA7  
-#define ADXL345_WRITE   0xA6 
-#define ADXL345_ADDRESS 0x53
-
-//the ADXL345 7-bit address is 0x53 when ALT ADDRESS is low as it is on the sparkfun chip: when ALT ADDRESS is high the address is 0x1D
-//when ALT ADDRESS pin is high:
-//#define ADXL345_READ    0x3B   
-//#define ADXL345_WRITE   0x3A
-//#define ADXL345_ADDRESS 0x1D 
-
 #define ADXL345_X           0x00
 #define ADXL345_Y           0x01
 #define ADXL345_Z           0x02
 
 typedef char byte;
 
-class ADXL345
+class ADXL345 : public I2C_Sensor
 {
     public:
-        ADXL345(PinName sda, PinName scl); // constructor, uses i2c
-        void read(); // read all axis to array
-        int data[3]; // where the measured data is saved
+        ADXL345(PinName sda, PinName scl);                  // constructor, uses I2C_Sensor class
+        virtual void read();                                // read all axis to array
+        
+        float offset[3];                                    // offset that's subtracted from every measurement
+        void calibrate(int times, float separation_time);   // calibration from 'times' measurements with 'separation_time' time between (get an offset while not moving)
        
     private:
-        I2C i2c; // i2c object to communicate
-        void writeReg(byte reg, byte value); // write one single register to sensor
-        byte readReg(byte reg); // read one single register from sensor
-        void readMultiReg(char startAddress, char* ptr_output, int size); // read multiple regs
-        void setDataRate(char rate); // data rate configuration (not only a reg to write)
+        virtual void readraw();
 };
 
 #endif

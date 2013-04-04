@@ -10,6 +10,7 @@ class PID {
         PID(float P, float I, float D, float Integral_Max);
         float compute(float SetPoint, float ProcessValue);
         void setIntegrate(bool Integrate);
+        void setPID(float P, float I, float D);
     
     private:
         float P,I,D; // PID Values

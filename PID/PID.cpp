@@ -39,6 +39,13 @@ float PID::compute(float SetPoint, float ProcessValue)
     return Result;
 }
 
+void PID::setPID(float P, float I, float D)
+{
+    PID::P = P;
+    PID::I = I;
+    PID::D = D;
+}
+
 void PID::setIntegrate(bool Integrate)
 {
     PID::Integrate = Integrate;

@@ -13,15 +13,13 @@
 
 #define RATE            0.002                               // speed of the interrupt for Sensors and PID
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
-#define MAXPITCH        40                                  // maximal angle from horizontal that the PID is aming for
-#define RC_SENSITIVITY  30
+#define RC_SENSITIVITY  30                                  // maximal angle from horizontal that the PID is aming for
 #define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
 
-float P = 1.5;                                   // PID values
-float I = 0;
-float D = 1;
+float P = 1.1;                                   // PID values
+float I = 0.3;
+float D = 0.8;
 
-//#define COMPASSCALIBRATE // decomment if you want to calibrate the Compass on start
 #define PC_CONNECTED // decoment if you want to debug per USB/Bluetooth and your PC
 
 Timer GlobalTimer;                      // global time to calculate processing speed
@@ -31,10 +29,8 @@ Ticker Dutycycler;                      // timecontrolled interrupt to get data 
 LED         LEDs;
 #ifdef PC_CONNECTED
     //PC          pc(USBTX, USBRX, 115200);    // USB
-    PC          pc(p9, p10, 115200);      // Bluetooth
+    PC          pc(p9, p10, 115200);       // Bluetooth
 #endif
-LocalFileSystem local("local");               // Create the local filesystem under the name "local"
-//FILE *Logger;
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
@@ -42,25 +38,23 @@ BMP085_old      Alt(p28, p27);
 RC_Channel  RC[] = {RC_Channel(p11,1), RC_Channel(p12,2), RC_Channel(p13,4), RC_Channel(p14,3)};    // no p19/p20 !
 Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)}; // p21 - p26 only because PWM needed!
 IMU_Filter  IMU;    // don't write () after constructor for no arguments!
-Mixer       MIX(1);      
+Mixer       MIX(1); // 1 for X-Formation 
 
 // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
-PID     Controller[] = {PID(P, I, D, 1000), PID(P, I, D, 1000), PID(0.2, 0, 0.1, 1000)};
+PID     Controller[] = {PID(P, I, D, 1000), PID(P, I, D, 1000), PID(0.5, 0.01, 0, 1000)};
 
 // global variables
-bool            armed = false;          // this variable is for security (when false no motor rotates any more)
-unsigned long   dt = 0;
-unsigned long   time_for_dt = 0;
-unsigned long   dt_read_sensors = 0;
-unsigned long   time_read_sensors = 0;
-float           tempangle = 0; // temporärer winkel für yaw mit kompass
-float           controller_value[] = {0,0,0};   // The calculated answer form the Controller
-float           RC_angle[] = {0,0,0};  // Angle of the RC Sticks, to steer the QC
-char            command[300]; //= {'\0'};
+bool    armed = false;          // this variable is for security (when false no motor rotates any more)
+float   dt = 0;
+float   time_for_dt = 0;
+float   dt_read_sensors = 0;
+float   time_read_sensors = 0;
+float   controller_value[] = {0,0,0};   // The calculated answer form the Controller
+float   RC_angle[] = {0,0,0};  // Angle of the RC Sticks, to steer the QC
 
 void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
-    time_read_sensors = GlobalTimer.read_us();
+    time_read_sensors = GlobalTimer.read(); // start time measure for sensors
     
     // read data from sensors // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes
     Gyro.read();
@@ -68,35 +62,28 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     //Comp.read();
     //Alt.Update(); TODO braucht zu lange zum auslesen!
     
-    dt_read_sensors = GlobalTimer.read_us() - time_read_sensors;
+    dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time measure for sensors
     
-    // meassure dt
-    dt = GlobalTimer.read_us() - time_for_dt; // time in us since last loop
-    time_for_dt = GlobalTimer.read_us();      // set new time for next measurement
+    // meassure dt for the filter
+    dt = GlobalTimer.read() - time_for_dt; // time in us since last loop
+    time_for_dt = GlobalTimer.read();      // set new time for next measurement
     
     IMU.compute(dt, Gyro.data, Acc.data);
     
     // Arming / disarming
     if(RC[3].read() < 20 && RC[2].read() > 850) {
         armed = true;
-        #ifdef LOGGER
-            if(Logger == NULL)
-                Logger = fopen("/local/log.csv", "a");
-        #endif
     }
     if((RC[3].read() < 30 && RC[2].read() < 30) || RC[2].read() < -10 || RC[3].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10) {
         armed = false;
-        #ifdef LOGGER
-            if(Logger != NULL) {
-                fclose(Logger);
-                Logger = NULL;
-            }
-        #endif
     }
     
-    for(int i=0;i<2;i++)    // calculate new angle we want the QC to have
+    for(int i=0;i<2;i++) {    // calculate new angle we want the QC to have
         RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
-    //RC_angle[2] += (RC[3].read()-500)*YAWSPEED/500;
+        if (RC_angle[i] < -RC_SENSITIVITY-2)
+            RC_angle[i] = 0;
+    }
+    //RC_angle[2] += (RC[3].read()-500)*YAWSPEED/500;  // for yaw angle is integrated
     
     for(int i=0;i<3;i++) {
         Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
@@ -113,98 +100,54 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
             virt_angle[1] = IMU.angle[1] + (RC[1].read()-500)*MAXPITCH/500.0;
             yawposition += (RC[3].read()-500)*YAWSPEED/500;
             virt_angle[2] = IMU.angle[2] + yawposition;*/
-            
-            // PID controlling
-            /*if (!(RC[0].read() == -100)) { // the RC must be there to controll // alte version mit setpoint, nicht nötig? granzen bei yaw los? :)
-                Controller[0].setSetPoint(-((RC[0].read()-500)*MAXPITCH/500.0));    // set angles based on RC input
-                Controller[1].setSetPoint(-((RC[1].read()-500)*MAXPITCH/500.0));
-                Controller[2].setSetPoint(-((RC[3].read()-500)*180.0/500.0));
-            }*/
-            
-            
-            MIX.compute(dt, RC[3].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
+
+            MIX.compute(RC[3].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
             
             for(int i=0;i<4;i++)   // Set new motorspeeds
                 ESC[i] = (int)MIX.Motor_speed[i];
             
-            #ifdef LOGGER
-                // Writing Log
-                for(int i = 0; i < 3; i++) {
-                    fprintf(Logger, "%f;", angle[i]);
-                    fprintf(Logger, "%f;", controller_value[i]);
-                }
-                fprintf(Logger, "\r\n");
-            #endif
     } else {
         for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
             ESC[i] = 0;
     }
 }
 
-void execute() {
+void commandexecuter(char* command) {  // take new PID values on the fly
     if (command[0] == 'p')
-        P = atoi(&command[1]);
+        P = atof(&command[1]);
     if (command[0] == 'i')
-        I = atoi(&command[1]);
+        I = atof(&command[1]);
     if (command[0] == 'd')
-        D = atoi(&command[1]);
-}
-
-void pc_worker() {
-    char input = pc.getc();
-    
-    if (input == '\r') {
-        execute();
-        command[0] = '\0';
-    } else {
-        int i = 0;
-        while(command[i] != '\0'){
-            i++;
-            LEDs.rollnext();
-            }
-        command[i]   = input;
-        command[i+1] = '\0';
+        D = atof(&command[1]);
+    for(int i=0;i<2;i++) {
+        Controller[i].setPID(P,I,D); // give the controller the new PID values
     }
 }
 
 int main() { // main programm for initialisation and debug output
     NVIC_SetPriority(TIMER3_IRQn, 1); // set priorty of tickers below hardware interrupts (standard priority is 0)(this is to prevent the RC interrupt from waiting until ticker is finished)
     
-    //pc.attach(&pc_worker); // zum Befehle geben
-    
-    #ifdef LOGGER
-        Logger = fopen("/local/log.csv", "w"); // Prepare Logfile
-        for(int i = 0; i < 3; i++) {
-            fprintf(Logger, "angle[%d];", i);
-            fprintf(Logger, "controller_value[%d];", i);
-        }
-        fprintf(Logger, "\r\n");
-        fclose(Logger);
-        Logger = NULL;
-    #endif
-    
     #ifdef PC_CONNECTED
-        #ifdef COMPASSCALIBRATE
-            pc.locate(10,5);
-            pc.printf("CALIBRATING");
-            Comp.calibrate(60);
-        #endif
-        
         // init screen
         pc.locate(10,5);
         pc.printf("Flybed v0.2");
     #endif
     LEDs.roll(2);
     
+    Gyro.calibrate(50, 0.02);
+    Acc.calibrate(50, 0.02);
+    
     // Start!
     GlobalTimer.start();
     Dutycycler.attach(&dutycycle, RATE);     // start to process all RATEms
     
     while(1) { 
-        //pc.printf("%f,%f,%f,%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // serialplot of IMU
+        if (pc.readable())  // Get Serial input (polled because interrupts disturb I2C)
+            pc.readcommand(&commandexecuter);
+        //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
         #if 1 //pc.cls();
-            pc.locate(30,0); // PC output
-            pc.printf("dt:%3.3fms   dt_sensors:%dus    Altitude:%6.1fm   ", dt/1000.0, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
+            pc.locate(20,0); // PC output
+            pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
             pc.locate(5,1);
             if(armed)
                 pc.printf("ARMED!!!!!!!!!!!!!");
@@ -213,11 +156,15 @@ int main() { // main programm for initialisation and debug output
             pc.locate(5,3);
             pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
             pc.locate(5,4);
-            pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
+            pc.printf("q0:%6.1f   q1:%6.1f   q2:%6.1f   q3:%6.1f       ", IMU.q0, IMU.q1, IMU.q2, IMU.q3);
             pc.locate(5,5);
             pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
             pc.locate(5,6);
-            pc.printf("Acc.data: X:%6d  Y:%6d  Z:%6d", Acc.data[0], Acc.data[1], Acc.data[2]); 
+            pc.printf("Acc.data:  X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
+            
+            pc.locate(5,8);
+            pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
+            
             pc.locate(5,11);
             pc.printf("PID Result:");
             for(int i=0;i<3;i++)
@@ -229,13 +176,10 @@ int main() { // main programm for initialisation and debug output
             
             // RC
             pc.locate(10,19);
-            pc.printf("RC0: %4d   ", RC[0].read());
-            pc.printf("RC1: %4d   ", RC[1].read());
-            pc.printf("RC2: %4d   ", RC[2].read());
-            pc.printf("RC3: %4d   ", RC[3].read());
+            pc.printf("RC0: %4d   RC1: %4d   RC2: %4d   RC3: %4d   ", RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
             
             pc.locate(10,21);
-            pc.printf("Commandline: %s ", command);
+            pc.printf("Commandline: %s                                  ", pc.command);
         #endif
         if(armed){
             LEDs.rollnext();

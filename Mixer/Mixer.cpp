@@ -8,7 +8,7 @@ Mixer::Mixer(int Configuration)
         Motor_speed[i]=0;
 }
 
-void Mixer::compute(unsigned long dt, int Throttle, const float * controller_value)
+void Mixer::compute(int Throttle, const float * controller_value)
 {
     // Mixing tables for each configuration
     float mix_table[2][4][3] = {

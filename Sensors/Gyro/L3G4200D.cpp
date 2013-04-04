@@ -27,7 +27,7 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     
     writeRegister(L3G4200D_CTRL_REG1, 0x0F);            // starts Gyro measurement
     
-    calibrate();
+    //calibrate(50, 0.01);
 }
 
 void L3G4200D::read()
@@ -35,7 +35,7 @@ void L3G4200D::read()
     readraw();                                          // read raw measurement data
     
     for (int i = 0; i < 3; i++)
-            data[i] = raw[i] - offset[i];               // subtract offset from calibration
+            data[i] = (raw[i] - offset[i])*0.07;               // subtract offset from calibration and multiply unit factor (datasheet s.10)
 }
 
 int L3G4200D::readTemp()
@@ -47,26 +47,25 @@ void L3G4200D::readraw()
 {
     char buffer[6];                                     // 8-Bit pieces of axis data
     
-    readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C   // TODO: wiiiiiiso?!   | (1 << 7)
+    readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C   // TODO: why?!   | (1 << 7)
     
     raw[0] = (short) (buffer[1] << 8 | buffer[0]);     // join 8-Bit pieces to 16-bit short integers
     raw[1] = (short) (buffer[3] << 8 | buffer[2]);
     raw[2] = (short) (buffer[5] << 8 | buffer[4]);
 }
 
-void L3G4200D::calibrate()
+void L3G4200D::calibrate(int times, float separation_time)
 {
-    // calibrate gyro with an average of count samples (result of calibration stored in offset[])
-    float Gyro_calib[3] = {0,0,0};                      // temporary var for the sum of calibration measurement
+    // calibrate sensor with an average of count samples (result of calibration stored in offset[])
+    float calib[3] = {0,0,0};                           // temporary array for the sum of calibration measurement
     
-    const int count = 50;
-    for (int i = 0; i < count; i++) {                   // read 50 times the data in a very short time
+    for (int i = 0; i < times; i++) {                   // read 'times' times the data in a very short time
         readraw();
         for (int j = 0; j < 3; j++)
-            Gyro_calib[j] += raw[j];
-        wait(0.001);          // TODO: maybe less or no wait !!
+            calib[j] += raw[j];
+        wait(separation_time);
     }
     
     for (int i = 0; i < 3; i++)
-        offset[i] = Gyro_calib[i]/count;                // take the average of the calibration measurements
+        offset[i] = calib[i]/times;                     // take the average of the calibration measurements
 }

@@ -11,7 +11,7 @@ class Mixer
 {
     public:
         Mixer(int Configuration);
-        void compute(unsigned long dt, int Throttle, const float * controller_value);
+        void compute(int Throttle, const float * controller_value);
         float Motor_speed[4];       // calculated motor speeds to send to the ESCs
     private:
         int Configuration;          // number of the configuration used (for example +)
