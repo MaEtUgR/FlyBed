@@ -3,6 +3,7 @@
 
 RC_Channel::RC_Channel(PinName mypin, int index) : myinterrupt(mypin)
 {
+    LocalFileSystem local("local");                                  // If theres no local yet
     RC_Channel::index = index;
     time = -100; // start value to see if there was any value yet
     
