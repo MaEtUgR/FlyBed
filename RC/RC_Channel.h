@@ -10,7 +10,7 @@ class RC_Channel
         int read(); // read the last measured data
        
     private:
-        int index; // to know which channel of the RC an instance has
+        int index; // to know which channel of the RC an instance has (only for calibrations savings)
         int time; // last measurement data
         float scale; // calibration values
         float offset;

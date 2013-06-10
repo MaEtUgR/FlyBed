@@ -19,10 +19,10 @@ void Mixer::compute(int Throttle, const float * controller_value)
         {  -1,  0, -1}
     },
     {
-        {  RT,  RT,  1},       // X configuration
-        { -RT,  RT, -1},
-        { -RT, -RT,  1},
-        {  RT, -RT, -1}
+        {  RT, -RT,  1},       // X configuration
+        {  RT,  RT, -1},
+        { -RT,  RT,  1},
+        { -RT, -RT, -1}
     }
     };
     
@@ -34,5 +34,5 @@ void Mixer::compute(int Throttle, const float * controller_value)
     }
     
     for(int i = 0; i < 4; i++) // make sure no motor stands still
-        Motor_speed[i] = Motor_speed[i] > 50 ? Motor_speed[i] : 50;
+        Motor_speed[i] = Motor_speed[i] > 150 ? Motor_speed[i] : 150;
 }

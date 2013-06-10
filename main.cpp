@@ -16,16 +16,35 @@
 #define RC_SENSITIVITY  30                                  // maximal angle from horizontal that the PID is aming for
 #define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
 
-float P = 1.1;                                   // PID values
-float I = 0.3;
-float D = 0.8;
+// RC
+#define AILERON         0
+#define ELEVATOR        1
+#define RUDDER          2
+#define THROTTLE        3
+// Axes
+#define ROLL            0
+#define PITCH           1
+#define YAW             2
 
 #define PC_CONNECTED // decoment if you want to debug per USB/Bluetooth and your PC
 
-Timer GlobalTimer;                      // global time to calculate processing speed
-Ticker Dutycycler;                      // timecontrolled interrupt to get data form IMU and RC
+// Global variables
+bool    armed = false;                  // this variable is for security (when false no motor rotates any more)
+float   dt = 0;
+float   time_for_dt = 0;
+float   dt_read_sensors = 0;
+float   time_read_sensors = 0;
+float   controller_value[] = {0,0,0};   // The calculated answer form the Controller
+float   RC_angle[] = {0,0,0};           // Angle of the RC Sticks, to steer the QC
 
-// initialisation of hardware (see includes for more info)
+float P = 1.0;                          // PID values
+float I = 0;
+float D = 0;
+
+Timer GlobalTimer;                      // global time to calculate processing speed
+Ticker Dutycycler;                      // timecontrolled interrupt for exact timed control loop
+
+// Initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
     //PC          pc(USBTX, USBRX, 115200);    // USB
@@ -35,22 +54,11 @@ L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
 HMC5883     Comp(p28, p27);
 BMP085_old      Alt(p28, p27);
-RC_Channel  RC[] = {RC_Channel(p11,1), RC_Channel(p12,2), RC_Channel(p13,4), RC_Channel(p14,3)};    // no p19/p20 !
-Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)}; // p21 - p26 only because PWM needed!
-IMU_Filter  IMU;    // don't write () after constructor for no arguments!
-Mixer       MIX(1); // 1 for X-Formation 
-
-// 0:X:Roll 1:Y:Pitch 2:Z:Yaw
-PID     Controller[] = {PID(P, I, D, 1000), PID(P, I, D, 1000), PID(0.5, 0.01, 0, 1000)};
-
-// global variables
-bool    armed = false;          // this variable is for security (when false no motor rotates any more)
-float   dt = 0;
-float   time_for_dt = 0;
-float   dt_read_sensors = 0;
-float   time_read_sensors = 0;
-float   controller_value[] = {0,0,0};   // The calculated answer form the Controller
-float   RC_angle[] = {0,0,0};  // Angle of the RC Sticks, to steer the QC
+RC_Channel  RC[] = {RC_Channel(p5,1), RC_Channel(p6,2), RC_Channel(p8,4), RC_Channel(p7,3)};                                // no p19/p20 !
+Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
+IMU_Filter  IMU;    // (don't write () after constructor for no arguments!)
+Mixer       MIX(1); // 0 for +-Formation, 1 for X-Formation 
+PID     Controller[] = {PID(P, I, D, 1000), PID(P, I, D, 1000), PID(0.5, 0, 0, 1000)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 
 void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
@@ -58,9 +66,9 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     
     // read data from sensors // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes
     Gyro.read();
-    Acc.read(); // TODO: nicht jeder Sensor immer? höhe nicht so wichtig
-    //Comp.read();
-    //Alt.Update(); TODO braucht zu lange zum auslesen!
+    Acc.read();
+    //Comp.read(); // TODO: not every loop every sensor? altitude not that important
+    //Alt.Update(); // TODO needs very long to read because of waits
     
     dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time measure for sensors
     
@@ -71,13 +79,14 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     IMU.compute(dt, Gyro.data, Acc.data);
     
     // Arming / disarming
-    if(RC[3].read() < 20 && RC[2].read() > 850) {
+    if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 850) {
         armed = true;
     }
-    if((RC[3].read() < 30 && RC[2].read() < 30) || RC[2].read() < -10 || RC[3].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10) {
+    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || RC[RUDDER].read() < -10 || RC[THROTTLE].read() < -10 || RC[ELEVATOR].read() < -10 || RC[AILERON].read() < -10) {
         armed = false;
     }
     
+    // RC Angle
     for(int i=0;i<2;i++) {    // calculate new angle we want the QC to have
         RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
         if (RC_angle[i] < -RC_SENSITIVITY-2)
@@ -85,6 +94,7 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     }
     //RC_angle[2] += (RC[3].read()-500)*YAWSPEED/500;  // for yaw angle is integrated
     
+    // PID controlling
     for(int i=0;i<3;i++) {
         Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
         controller_value[i] = Controller[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual angle and get his advice to correct
@@ -93,15 +103,7 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     
     if (armed) // for SECURITY!
     {       
-            // RC controlling
-            /*for(int i=0;i<3;i++)
-                AnglePosition[i] -= (RC[i].read()-500)*2/500.0;*/
-            /*virt_angle[0] = IMU.angle[0] + (RC[0].read()-500)*MAXPITCH/500.0; // TODO: zuerst RC calibration
-            virt_angle[1] = IMU.angle[1] + (RC[1].read()-500)*MAXPITCH/500.0;
-            yawposition += (RC[3].read()-500)*YAWSPEED/500;
-            virt_angle[2] = IMU.angle[2] + yawposition;*/
-
-            MIX.compute(RC[3].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
+            MIX.compute(RC[THROTTLE].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
             
             for(int i=0;i<4;i++)   // Set new motorspeeds
                 ESC[i] = (int)MIX.Motor_speed[i];
@@ -145,6 +147,7 @@ int main() { // main programm for initialisation and debug output
         if (pc.readable())  // Get Serial input (polled because interrupts disturb I2C)
             pc.readcommand(&commandexecuter);
         //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
+        //pc.printf("%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
         #if 1 //pc.cls();
             pc.locate(20,0); // PC output
             pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
