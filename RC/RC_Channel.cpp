@@ -32,7 +32,7 @@ void RC_Channel::fall()
     timer.stop();
     int tester = timer.read_us();
     if(tester >= 1000 && tester <=2000)
-        time = tester-1000;  // we want only the signal from 1000 on
+        time = tester-1000;  // we want only the signal from 1000 - 2000 as 0 - 1000 for easier scaling
     timer.reset();
     timer.start();
 }

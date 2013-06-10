@@ -37,9 +37,9 @@ float   time_read_sensors = 0;
 float   controller_value[] = {0,0,0};   // The calculated answer form the Controller
 float   RC_angle[] = {0,0,0};           // Angle of the RC Sticks, to steer the QC
 
-float P = 1.0;                          // PID values
+float P = 4.0;                          // PID values
 float I = 0;
-float D = 0;
+float D = 2.0;
 
 Timer GlobalTimer;                      // global time to calculate processing speed
 Ticker Dutycycler;                      // timecontrolled interrupt for exact timed control loop
@@ -47,8 +47,8 @@ Ticker Dutycycler;                      // timecontrolled interrupt for exact ti
 // Initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
-    //PC          pc(USBTX, USBRX, 115200);    // USB
-    PC          pc(p9, p10, 115200);       // Bluetooth
+    PC          pc(USBTX, USBRX, 921600);    // USB
+    //PC          pc(p9, p10, 115200);       // Bluetooth
 #endif
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
@@ -70,6 +70,8 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     //Comp.read(); // TODO: not every loop every sensor? altitude not that important
     //Alt.Update(); // TODO needs very long to read because of waits
     
+    pc.printf("%6.1f,%6.1f,%6.1f,%6.1f,%6.1f,%6.1f\r\n", Gyro.data[0], Gyro.data[1], Gyro.data[2], Acc.data[0], Acc.data[1], Acc.data[2]);
+    
     dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time measure for sensors
     
     // meassure dt for the filter
@@ -77,7 +79,8 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     time_for_dt = GlobalTimer.read();      // set new time for next measurement
     
     IMU.compute(dt, Gyro.data, Acc.data);
-    
+    //pc.printf("%f,%f,%f,%3.5fs,%3.5fs\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], dt, dt_read_sensors);
+
     // Arming / disarming
     if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 850) {
         armed = true;
@@ -97,7 +100,8 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     // PID controlling
     for(int i=0;i<3;i++) {
         Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-        controller_value[i] = Controller[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual angle and get his advice to correct
+        controller_value[i] = Controller[i].compute(0, IMU.angle[i]);
+        //controller_value[i] = Controller[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual angle and get his advice to correct
     }
                 
     
@@ -144,45 +148,47 @@ int main() { // main programm for initialisation and debug output
     Dutycycler.attach(&dutycycle, RATE);     // start to process all RATEms
     
     while(1) { 
-        if (pc.readable())  // Get Serial input (polled because interrupts disturb I2C)
-            pc.readcommand(&commandexecuter);
-        //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
-        //pc.printf("%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
-        #if 1 //pc.cls();
-            pc.locate(20,0); // PC output
-            pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
-            pc.locate(5,1);
-            if(armed)
-                pc.printf("ARMED!!!!!!!!!!!!!");
-            else
-                pc.printf("DIS_ARMED            ");
-            pc.locate(5,3);
-            pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
-            pc.locate(5,4);
-            pc.printf("q0:%6.1f   q1:%6.1f   q2:%6.1f   q3:%6.1f       ", IMU.q0, IMU.q1, IMU.q2, IMU.q3);
-            pc.locate(5,5);
-            pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
-            pc.locate(5,6);
-            pc.printf("Acc.data:  X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
-            
-            pc.locate(5,8);
-            pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
-            
-            pc.locate(5,11);
-            pc.printf("PID Result:");
-            for(int i=0;i<3;i++)
-                pc.printf("  %d: %6.1f", i, controller_value[i]);
-            pc.locate(5,14);
-            pc.printf("RC angle: roll: %f     pitch: %f      yaw: %f    ", RC_angle[0], RC_angle[1], RC_angle[2]);
-            pc.locate(5,16);
-            pc.printf("Motor: 0:%d 1:%d 2:%d 3:%d    ", (int)MIX.Motor_speed[0], (int)MIX.Motor_speed[1], (int)MIX.Motor_speed[2], (int)MIX.Motor_speed[3]);
-            
-            // RC
-            pc.locate(10,19);
-            pc.printf("RC0: %4d   RC1: %4d   RC2: %4d   RC3: %4d   ", RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
-            
-            pc.locate(10,21);
-            pc.printf("Commandline: %s                                  ", pc.command);
+        #ifdef PC_CONNECTED
+            if (pc.readable())  // Get Serial input (polled because interrupts disturb I2C)
+                pc.readcommand(&commandexecuter);
+            //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
+            //pc.printf("%f,%f,%f,%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]);
+            #if 0 //pc.cls();
+                pc.locate(20,0); // PC output
+                pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
+                pc.locate(5,1);
+                if(armed)
+                    pc.printf("ARMED!!!!!!!!!!!!!");
+                else
+                    pc.printf("DIS_ARMED            ");
+                pc.locate(5,3);
+                pc.printf("Roll:%6.1f   Pitch:%6.1f   Yaw:%6.1f    ", IMU.angle[0], IMU.angle[1], IMU.angle[2]);
+                pc.locate(5,4);
+                pc.printf("q0:%6.1f   q1:%6.1f   q2:%6.1f   q3:%6.1f       ", IMU.q0, IMU.q1, IMU.q2, IMU.q3);
+                pc.locate(5,5);
+                pc.printf("Gyro.data: X:%6.1f  Y:%6.1f  Z:%6.1f", Gyro.data[0], Gyro.data[1], Gyro.data[2]);
+                pc.locate(5,6);
+                pc.printf("Acc.data:  X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
+                
+                pc.locate(5,8);
+                pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
+                
+                pc.locate(5,11);
+                pc.printf("PID Result:");
+                for(int i=0;i<3;i++)
+                    pc.printf("  %d: %6.1f", i, controller_value[i]);
+                pc.locate(5,14);
+                pc.printf("RC angle: roll: %f     pitch: %f      yaw: %f    ", RC_angle[0], RC_angle[1], RC_angle[2]);
+                pc.locate(5,16);
+                pc.printf("Motor: 0:%d 1:%d 2:%d 3:%d    ", (int)MIX.Motor_speed[0], (int)MIX.Motor_speed[1], (int)MIX.Motor_speed[2], (int)MIX.Motor_speed[3]);
+                
+                // RC
+                pc.locate(10,19);
+                pc.printf("RC0: %4d   RC1: %4d   RC2: %4d   RC3: %4d   ", RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
+                
+                pc.locate(10,21);
+                pc.printf("Commandline: %s                                  ", pc.command);
+            #endif
         #endif
         if(armed){
             LEDs.rollnext();
