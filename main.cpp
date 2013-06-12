@@ -14,7 +14,7 @@
 #define RATE            0.002                               // speed of the interrupt for Sensors and PID
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define RC_SENSITIVITY  30                                  // maximal angle from horizontal that the PID is aming for
-#define YAWSPEED        2                                   // maximal speed of yaw rotation in degree per Rate
+#define YAWSPEED        0.2                                 // maximal speed of yaw rotation in degree per Rate
 
 // RC
 #define AILERON         0
