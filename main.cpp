@@ -15,6 +15,7 @@
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define RC_SENSITIVITY  30                                  // maximal angle from horizontal that the PID is aming for
 #define YAWSPEED        0.2                                 // maximal speed of yaw rotation in degree per Rate
+#define INTEGRAL_MAX    300
 
 // RC
 #define AILERON         0
@@ -30,16 +31,18 @@
 
 // Global variables
 bool    armed = false;                  // this variable is for security (when false no motor rotates any more)
+bool    RC_present = false;             // this variable shows if an RC is present
 float   dt = 0;
 float   time_for_dt = 0;
 float   dt_read_sensors = 0;
 float   time_read_sensors = 0;
 float   controller_value[] = {0,0,0};   // The calculated answer form the Controller
 float   RC_angle[] = {0,0,0};           // Angle of the RC Sticks, to steer the QC
+float   RC_yaw_adding;                  // temporary variable to take the desired yaw adjustment
 
 float P = 4.0;                          // PID values
 float I = 0;
-float D = 2.0;
+float D = 1.0;
 
 Timer GlobalTimer;                      // global time to calculate processing speed
 Ticker Dutycycler;                      // timecontrolled interrupt for exact timed control loop
@@ -47,7 +50,7 @@ Ticker Dutycycler;                      // timecontrolled interrupt for exact ti
 // Initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
-    PC          pc(USBTX, USBRX, 921600);    // USB
+    PC          pc(USBTX, USBRX, 115200);    // USB
     //PC          pc(p9, p10, 115200);       // Bluetooth
 #endif
 L3G4200D    Gyro(p28, p27);
@@ -58,7 +61,7 @@ RC_Channel  RC[] = {RC_Channel(p5,1), RC_Channel(p6,2), RC_Channel(p8,4), RC_Cha
 Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
 IMU_Filter  IMU;    // (don't write () after constructor for no arguments!)
 Mixer       MIX(1); // 0 for +-Formation, 1 for X-Formation 
-PID     Controller[] = {PID(P, I, D, 1000), PID(P, I, D, 1000), PID(0.5, 0, 0, 1000)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
+PID     Controller[] = {PID(P, I, D, INTEGRAL_MAX), PID(P, I, D, INTEGRAL_MAX), PID(1.0, 0, 0, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 
 void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
@@ -70,7 +73,7 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     //Comp.read(); // TODO: not every loop every sensor? altitude not that important
     //Alt.Update(); // TODO needs very long to read because of waits
     
-    pc.printf("%6.1f,%6.1f,%6.1f,%6.1f,%6.1f,%6.1f\r\n", Gyro.data[0], Gyro.data[1], Gyro.data[2], Acc.data[0], Acc.data[1], Acc.data[2]);
+    //pc.printf("%6.1f,%6.1f,%6.1f,%6.1f,%6.1f,%6.1f\r\n", Gyro.data[0], Gyro.data[1], Gyro.data[2], Acc.data[0], Acc.data[1], Acc.data[2]);
     
     dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time measure for sensors
     
@@ -81,34 +84,58 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     IMU.compute(dt, Gyro.data, Acc.data);
     //pc.printf("%f,%f,%f,%3.5fs,%3.5fs\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], dt, dt_read_sensors);
 
+    if(RC[AILERON].read() == -100 || RC[ELEVATOR].read() == -100 || RC[RUDDER].read() == -100 || RC[THROTTLE].read() == -100)
+        RC_present = false;
+    else
+        RC_present = true;
+
     // Arming / disarming
     if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 850) {
         armed = true;
     }
-    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || RC[RUDDER].read() < -10 || RC[THROTTLE].read() < -10 || RC[ELEVATOR].read() < -10 || RC[AILERON].read() < -10) {
+    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || !RC_present) {
         armed = false;
     }
     
-    // RC Angle
+    // RC Angle ROLL-PITCH-Part
     for(int i=0;i<2;i++) {    // calculate new angle we want the QC to have
-        RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
-        if (RC_angle[i] < -RC_SENSITIVITY-2)
+        if (RC_present)
+            RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
+        else
             RC_angle[i] = 0;
     }
-    //RC_angle[2] += (RC[3].read()-500)*YAWSPEED/500;  // for yaw angle is integrated
+    
+    // RC Angle YAW-Part
+    if (RC_present && RC[THROTTLE].read() > 20)
+        RC_yaw_adding = (RC[RUDDER].read()-500)*YAWSPEED/500;
+    else
+        RC_yaw_adding = 0;
+        
+    while(RC_angle[YAW] + RC_yaw_adding < -180 || RC_angle[YAW] + RC_yaw_adding > 180) { // make shure it's in the cycle -180 to 180
+        if(RC_angle[YAW] + RC_yaw_adding < -180)
+            RC_yaw_adding += 360;
+        if(RC_angle[YAW] + RC_yaw_adding > 180)
+            RC_yaw_adding -= 360;
+    }
+    RC_angle[YAW] += RC_yaw_adding;  // for yaw angle it's integrated
     
     // PID controlling
-    for(int i=0;i<3;i++) {
+    for(int i=0;i<2;i++) {
         Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-        controller_value[i] = Controller[i].compute(0, IMU.angle[i]);
-        //controller_value[i] = Controller[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual angle and get his advice to correct
+        controller_value[i] = Controller[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual angle and get his advice to correct
     }
-                
+    Controller[YAW].setIntegrate(armed); // same for YAW
+    if (abs(RC_angle[YAW] - IMU.angle[YAW]) > 180)  // for YAW a special calculation because of range -180 to 180
+         if (RC_angle[YAW] > IMU.angle[YAW])
+            controller_value[YAW] = Controller[YAW].compute(RC_angle[YAW] - 360, IMU.angle[YAW]);
+         else
+            controller_value[YAW] = Controller[YAW].compute(RC_angle[YAW] + 360, IMU.angle[YAW]);
+    else
+        controller_value[YAW] = Controller[YAW].compute(RC_angle[YAW], IMU.angle[YAW]);
     
     if (armed) // for SECURITY!
     {       
             MIX.compute(RC[THROTTLE].read(), controller_value); // let the Mixer compute motorspeeds based on throttle and controller output
-            
             for(int i=0;i<4;i++)   // Set new motorspeeds
                 ESC[i] = (int)MIX.Motor_speed[i];
             
@@ -153,7 +180,7 @@ int main() { // main programm for initialisation and debug output
                 pc.readcommand(&commandexecuter);
             //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
             //pc.printf("%f,%f,%f,%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]);
-            #if 0 //pc.cls();
+            #if 1 //pc.cls();
                 pc.locate(20,0); // PC output
                 pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
                 pc.locate(5,1);

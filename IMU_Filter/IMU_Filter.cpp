@@ -61,6 +61,21 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
         rangle[1] = asin(2*q0*q2 - 2*q3*q1);
         rangle[2] = atan2(2*q0*q3 + 2*q1*q2, 1 - 2*(q2*q2 + q3*q3));
         
+        // TODO
+        // Pitch should have a range of +/-90 degrees. 
+        // After you pitch past vertical (90 degrees) your roll and yaw value should swing 180 degrees. 
+        // A pitch value of 100 degrees is measured as a pitch of 80 degrees and inverted flight (roll = 180 degrees). 
+        // Another example is a pitch of 180 degrees (upside down). This is measured as a level pitch (0 degrees) and a roll of 180 degrees.
+        // And I think this solves the upside down issue...
+        // Handle roll reversal when inverted
+        /*if (Acc_data[2] < 0) {
+            if (Acc_data[0] < 0) {
+                rangle[1] = (180 - rangle[1]);
+            } else {
+                rangle[1] = (-180 - rangle[1]);
+            }
+        }*/
+        
         for(int i=0; i<3; i++)  // angle in degree
             angle[i] = rangle[i] * 180 / PI;
     #endif 

@@ -33,6 +33,8 @@ void Mixer::compute(int Throttle, const float * controller_value)
             Motor_speed[i] += mix_table[Configuration][i][j] * controller_value[j];
     }
     
-    for(int i = 0; i < 4; i++) // make sure no motor stands still
+    for(int i = 0; i < 4; i++) { // make sure no motor stands still or gets a higher speed than 1000
         Motor_speed[i] = Motor_speed[i] > 150 ? Motor_speed[i] : 150;
+        Motor_speed[i] = Motor_speed[i] <= 1000 ? Motor_speed[i] : 1000;
+    }
 }
