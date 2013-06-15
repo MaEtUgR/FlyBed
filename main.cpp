@@ -2,6 +2,7 @@
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
 #include "RC_Channel.h" // RemoteControl Channels with PPM
 #include "Servo_PWM.h"  // Motor PPM using PwmOut
+#include "MODI2C.h"
 
 // Defines
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
@@ -34,16 +35,19 @@
 // Hardware connections
 DigitalOut loopLED(LED1);
 DigitalOut armedLED(LED2);
+DigitalOut FBlowLED(LED3);
+DigitalOut RLlowLED(LED4);
 PC          pc(USBTX, USBRX, 38400);    // USB
-I2C i2c(p28, p27);            // I2C-Bus for sensors
-RC_Channel  RC[] = {RC_Channel(p11,1), RC_Channel(p12,2), RC_Channel(p13,4), RC_Channel(p14,3)};                                // no p19/p20 !
-Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p24,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p22,PPM_FREQU)};   // p21 - p26 only because PWM needed!
+I2C i2cinit(p28, p27);            // I2C-Bus for sensors-initialisation
+MODI2C i2c(p28, p27);            // I2C-Bus for sensors-data
+RC_Channel  RC[] = {RC_Channel(p5,1), RC_Channel(p6,2), RC_Channel(p8,4), RC_Channel(p7,3)};                                // no p19/p20 !
+Servo_PWM   ESC[] = {Servo_PWM(p23,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p21,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
 
 // Global variables
 bool    armed = false;
 float   ESC_value[4] = {0,0,0,0};
 float   Error[3] = {0,0,0};
-float   P[3] = {3,3,3};
+float   P[3] = {1.2,1.2,1.2};
 // Timing
 float   dt = 0;
 float   time_for_dt = 0;
@@ -58,7 +62,7 @@ float   offset[3] = {0,0,0};
 void writeRegister(char reg, char data)
 {
     char buffer[2] = {reg, data};
-    i2c.write(L3G4200D_I2C_ADDRESS, buffer, 2, true);
+    i2cinit.write(L3G4200D_I2C_ADDRESS, buffer, 2, true);
 }
 
 void readMultiRegister(char reg, char* output, int size)
@@ -87,6 +91,9 @@ void setup() {
     pc.printf("Init...");
     
     // init Gyro ---------------------------------------------------------------------------------------------------
+    i2cinit.frequency(400000);
+    i2c.frequency(400000);
+    
     writeRegister(L3G4200D_CTRL_REG1, 0x8F);            // starts Gyro measurement
     //writeRegister(L3G4200D_CTRL_REG2, 0x00);            // highpass filter disabled
     //writeRegister(L3G4200D_CTRL_REG3, 0x00);
@@ -118,10 +125,10 @@ void loop() {
     time_for_dt = GlobalTimer.read();      // set new time for next measurement
     
     // Arming / disarming
-    if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 920) {
+    if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() < 30) {
         armed = true;
     }
-    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || RC[2].read() < -10 || RC[3].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10) {
+    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() > 920) || RC[2].read() < -10 || RC[3].read() < -10 || RC[1].read() < -10 || RC[0].read() < -10) {
         armed = false;
     }
     
@@ -170,7 +177,9 @@ void loop() {
     
     
     const int minimum_throttle = 140;
-    for (int i = 0; i < 4; i++) {    // make shure there are no negative or too high ESC_values
+    FBlowLED = ESC_value[FRONT] < minimum_throttle || ESC_value[BACK] < minimum_throttle;
+    RLlowLED = ESC_value[RIGHT] < minimum_throttle || ESC_value[LEFT] < minimum_throttle;
+    for (int i = 0; i < 4; i++) {    // make shure there are no too low or too high ESC_values
             if (ESC_value[i] < minimum_throttle) {
                 /*switch (i){
                     case FRONT: ESC_value[BACK] -= ESC_value[i]+minimum_throttle; break;
@@ -178,6 +187,7 @@ void loop() {
                     case LEFT: ESC_value[RIGHT] -= ESC_value[i]+minimum_throttle; break;
                     case RIGHT: ESC_value[LEFT] -= ESC_value[i]+minimum_throttle; break; //default: 
                 }*/
+                
                 ESC_value[i] = minimum_throttle;
             }
             if (ESC_value[i] > 1000) {
@@ -204,9 +214,11 @@ void loop() {
             ESC[i] = 0;
     
     // display --------------------------------------------------------------------------------------------------------------------
+    //pc.printf("%6.3f %6.3f %6.3f\n\r", Gyro_sum[ROLL], Gyro_sum[PITCH], Gyro_sum[YAW]);
+    wait(0.01);
     #if 0 
         pc.locate(10,7);
-        pc.printf("Gyro: X:%6.3f  Y:%6.3f  Z:%6.3f                     ", Gyro[0], Gyro[1], Gyro[2]);
+        pc.printf("Gyro: X:%6.3f  Y:%6.3f  Z:%6.3f                     ", Gyro[ROLL], Gyro[PITCH], Gyro[YAW]);
         pc.locate(10,8);
         pc.printf("Gyro_sum: X:%6.1f  Y:%6.1f  Z:%6.1f       dt: %1.4f                ", Gyro_sum[ROLL], Gyro_sum[PITCH], Gyro_sum[YAW], dt);
         pc.locate(10,10);
@@ -220,9 +232,9 @@ void loop() {
     // LED
     armedLED = armed;
     loopLED = 1;
-    wait(0.0005);
+    //wait(0.0005);
     loopLED = 0;
-    wait(0.001);
+    //wait(0.001);
 }
 
 int main() {
