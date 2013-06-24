@@ -42,7 +42,11 @@ float   RC_yaw_adding;                  // temporary variable to take the desire
 
 float P = 4.0;                          // PID values
 float I = 0;
-float D = 1.0;
+float D = 0.1;
+
+float PY = 0;                          // PID values for YAW
+float IY = 0;
+float DY = 0;
 
 Timer GlobalTimer;                      // global time to calculate processing speed
 Ticker Dutycycler;                      // timecontrolled interrupt for exact timed control loop
@@ -50,8 +54,8 @@ Ticker Dutycycler;                      // timecontrolled interrupt for exact ti
 // Initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
-    PC          pc(USBTX, USBRX, 115200);    // USB
-    //PC          pc(p9, p10, 115200);       // Bluetooth
+    //PC          pc(USBTX, USBRX, 115200);    // USB
+    PC          pc(p9, p10, 115200);       // Bluetooth
 #endif
 L3G4200D    Gyro(p28, p27);
 ADXL345     Acc(p28, p27);
@@ -61,7 +65,7 @@ RC_Channel  RC[] = {RC_Channel(p5,1), RC_Channel(p6,2), RC_Channel(p8,4), RC_Cha
 Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
 IMU_Filter  IMU;    // (don't write () after constructor for no arguments!)
 Mixer       MIX(1); // 0 for +-Formation, 1 for X-Formation 
-PID     Controller[] = {PID(P, I, D, INTEGRAL_MAX), PID(P, I, D, INTEGRAL_MAX), PID(1.0, 0, 0, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
+PID     Controller[] = {PID(P, I, D, INTEGRAL_MAX), PID(P, I, D, INTEGRAL_MAX), PID(PY, IY, DY, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 
 void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
 {
@@ -75,7 +79,7 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     
     //pc.printf("%6.1f,%6.1f,%6.1f,%6.1f,%6.1f,%6.1f\r\n", Gyro.data[0], Gyro.data[1], Gyro.data[2], Acc.data[0], Acc.data[1], Acc.data[2]);
     
-    dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time measure for sensors
+    
     
     // meassure dt for the filter
     dt = GlobalTimer.read() - time_for_dt; // time in us since last loop
@@ -92,6 +96,7 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
     // Arming / disarming
     if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 850) {
         armed = true;
+        RC_angle[YAW] = IMU.angle[YAW];
     }
     if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || !RC_present) {
         armed = false;
@@ -143,18 +148,47 @@ void dutycycle() // method which is called by the Ticker Dutycycler every RATE s
         for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
             ESC[i] = 0;
     }
+    pc.printf("%d,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,%f\r\n",
+        armed,
+        dt,
+        dt_read_sensors,
+        IMU.angle[ROLL], 
+        IMU.angle[PITCH], 
+        IMU.angle[YAW], 
+        RC_angle[ROLL], 
+        RC_angle[PITCH], 
+        RC_angle[YAW], 
+        controller_value[ROLL], 
+        controller_value[PITCH], 
+        controller_value[YAW], 
+        MIX.Motor_speed[0], 
+        MIX.Motor_speed[1], 
+        MIX.Motor_speed[2], 
+        MIX.Motor_speed[3]);
+                                    
+    dt_read_sensors = GlobalTimer.read() - time_read_sensors; // stop time for loop
 }
 
 void commandexecuter(char* command) {  // take new PID values on the fly
     if (command[0] == 'p')
-        P = atof(&command[1]);
+        if (command[1] == 'y')
+            PY = atof(&command[2]);
+        else
+            P = atof(&command[1]);
     if (command[0] == 'i')
-        I = atof(&command[1]);
+        if (command[1] == 'y')
+            IY = atof(&command[2]);
+        else
+            I = atof(&command[1]);
     if (command[0] == 'd')
-        D = atof(&command[1]);
+        if (command[1] == 'y')
+            DY = atof(&command[2]);
+        else
+            D = atof(&command[1]);
     for(int i=0;i<2;i++) {
         Controller[i].setPID(P,I,D); // give the controller the new PID values
     }
+    Controller[YAW].setPID(PY,IY,DY); // give the controller the new PID values
 }
 
 int main() { // main programm for initialisation and debug output
@@ -180,7 +214,7 @@ int main() { // main programm for initialisation and debug output
                 pc.readcommand(&commandexecuter);
             //pc.printf("%f %f %f %f %f %f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]); // For live plot in MATLAB of IMU
             //pc.printf("%f,%f,%f,%f,%f,%f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], controller_value[0], controller_value[1], controller_value[2]);
-            #if 1 //pc.cls();
+            #if 0 //pc.cls();
                 pc.locate(20,0); // PC output
                 pc.printf("dt:%3.5fs   dt_sensors:%3.5fs    Altitude:%6.1fm   ", dt, dt_read_sensors, Alt.CalcAltitude(Alt.Pressure));
                 pc.locate(5,1);
@@ -198,7 +232,9 @@ int main() { // main programm for initialisation and debug output
                 pc.printf("Acc.data:  X:%6.1f  Y:%6.1f  Z:%6.1f", Acc.data[0], Acc.data[1], Acc.data[2]);
                 
                 pc.locate(5,8);
-                pc.printf("P:%6.1f   I:%6.1f   D:%6.1f    ", P, I, D);
+                pc.printf("P :%6.1f   I :%6.1f   D :%6.1f    ", P, I, D);
+                pc.locate(5,9);
+                pc.printf("PY:%6.1f   IY:%6.1f   DY:%6.1f    ", PY, IY, DY);
                 
                 pc.locate(5,11);
                 pc.printf("PID Result:");
