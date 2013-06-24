@@ -6,7 +6,8 @@
 
 // Defines
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
-#define RC_SENSITIVITY  0.2                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
+#define RC_SENSITIVITY  0.3                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
+#define YAW_SENSITIVITY 0.4
 // RC
 #define AILERON         0
 #define ELEVATOR        1
@@ -47,7 +48,7 @@ Servo_PWM   ESC[] = {Servo_PWM(p23,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_P
 bool    armed = false;
 float   ESC_value[4] = {0,0,0,0};
 float   Error[3] = {0,0,0};
-float   P[3] = {1.2,1.2,1.2};
+float   P[3] = {1.45,1.45,1.45};
 // Timing
 float   dt = 0;
 float   time_for_dt = 0;
@@ -138,6 +139,7 @@ void loop() {
         Gyro[i] *= 0.07;                            // make result degree per second
         
         // fill ringbuffer
+        /*
         Gyro_history[i][Gyro_history_index] = Gyro[i]; // save newest value to ringbuffer
         if (Gyro_history_index < 5-1)
             Gyro_history_index++;
@@ -150,16 +152,19 @@ void loop() {
             sum += Gyro_history[i][j];
         }
         Gyro[i] = sum/5;
-        
+        */
         Gyro_sum[i] += Gyro[i]*dt;      // integrate speed to get angle
     }
     
     // calculate ESC -------------------------------------------------------------------------------------------------------------
-    for (int i = 0; i < 3; i++)
-            if (RC[i].read() != -100)  // only count RC when it's available
-                Error[i] = ((RC[i].read() - 500)*RC_SENSITIVITY  -  Gyro[i]) * P[i];
-            else
-                Error[i] = (-  Gyro[i]) * P[i];
+    
+    if (RC[ROLL].read() != -100) {  // only count RC when it's available
+        Error[ROLL] = ((RC[ROLL].read() - 500)*RC_SENSITIVITY  -  Gyro[ROLL]) * P[ROLL];
+        Error[PITCH] = ((RC[PITCH].read() - 500)*RC_SENSITIVITY  -  Gyro[PITCH]) * P[PITCH];
+        Error[YAW] = ((RC[YAW].read() - 500)*YAW_SENSITIVITY  -  Gyro[YAW]) * P[YAW];
+    } else
+        for (int i = 0; i < 3; i++)
+            Error[i] = (-  Gyro[i]) * P[i];
     
     for (int i = 0; i < 4; i++)
         ESC_value[i] = RC[THROTTLE].read();
