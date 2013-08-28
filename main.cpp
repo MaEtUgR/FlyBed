@@ -7,7 +7,7 @@
 #include "BMP085_old.h"     // Alt (Altitude sensor)
 #include "RC_Channel.h" // RemoteControl Channels with PPM
 #include "Servo_PWM.h"  // Motor PPM using PwmOut
-#include "PID.h"        // PID Library by Aaron Berk
+#include "PID.h"        // PID Library (slim, self written)
 #include "IMU_Filter.h" // Class to calculate position angles
 #include "Mixer.h"      // Class to calculate motorspeeds from Angles, Regulation and RC-Signals
 
@@ -67,8 +67,7 @@ IMU_Filter  IMU;    // (don't write () after constructor for no arguments!)
 Mixer       MIX(1); // 0 for +-Formation, 1 for X-Formation 
 PID     Controller[] = {PID(P, I, D, INTEGRAL_MAX), PID(P, I, D, INTEGRAL_MAX), PID(PY, IY, DY, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 
-void dutycycle() // method which is called by the Ticker Dutycycler every RATE seconds
-{
+void dutycycle() { // method which is called by the Ticker Dutycycler every RATE seconds
     time_read_sensors = GlobalTimer.read(); // start time measure for sensors
     
     // read data from sensors // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes
@@ -206,7 +205,7 @@ int main() { // main programm for initialisation and debug output
     
     // Start!
     GlobalTimer.start();
-    Dutycycler.attach(&dutycycle, RATE);     // start to process all RATEms
+    Dutycycler.attach(&dutycycle, RATE);     // start to process all RATE seconds
     
     while(1) { 
         #ifdef PC_CONNECTED
