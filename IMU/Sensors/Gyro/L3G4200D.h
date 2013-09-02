@@ -40,19 +40,16 @@
 #define L3G4200D_INT1_THS_ZL    0x37
 #define L3G4200D_INT1_DURATION  0x38
 
-class L3G4200D : public I2C_Sensor
-{
+class L3G4200D : public I2C_Sensor {
     public:            
         L3G4200D(PinName sda, PinName scl);                 // constructor, uses I2C_Sensor class
-        float data[3];                                      // where the measured data is saved
-        void read();                                        // read all axis from register to array data
+        virtual void read();                                // read all axis from register to array data
         float offset[3];                                    // offset that's subtracted from every measurement
         void calibrate(int times, float separation_time);   // calibration from 'times' measurements with 'separation_time' time between (get an offset while not moving)
         int readTemp();                                     // read temperature from sensor
         
     private:
-        int raw[3];
-        void readraw();
+        virtual void readraw();
 };
 
 #endif

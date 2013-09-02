@@ -1,7 +1,6 @@
 #include "L3G4200D.h"
 
-L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C_ADDRESS)
-{
+L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C_ADDRESS) {
     // Turns on the L3G4200D's gyro and places it in normal mode.
     // Normal power mode, all axes enabled (for detailed info see datasheet)
     
@@ -30,21 +29,18 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     //calibrate(50, 0.01);
 }
 
-void L3G4200D::read()
-{
+void L3G4200D::read() {
     readraw();                                          // read raw measurement data
     
     for (int i = 0; i < 3; i++)
             data[i] = (raw[i] - offset[i])*0.07;               // subtract offset from calibration and multiply unit factor (datasheet s.10)
 }
 
-int L3G4200D::readTemp()
-{
-    return (short) readRegister(L3G4200D_OUT_TEMP);     // read the sensors register for the temperature
+int L3G4200D::readTemp() {
+    return (char) readRegister(L3G4200D_OUT_TEMP);     // read the sensors register for the temperature
 }
 
-void L3G4200D::readraw()
-{
+void L3G4200D::readraw() {
     char buffer[6];                                     // 8-Bit pieces of axis data
     
     readMultiRegister(L3G4200D_OUT_X_L | (1 << 7), buffer, 6); // read axis registers using I2C   // TODO: why?!   | (1 << 7)
@@ -54,8 +50,7 @@ void L3G4200D::readraw()
     raw[2] = (short) (buffer[5] << 8 | buffer[4]);
 }
 
-void L3G4200D::calibrate(int times, float separation_time)
-{
+void L3G4200D::calibrate(int times, float separation_time) {
     // calibrate sensor with an average of count samples (result of calibration stored in offset[])
     float calib[3] = {0,0,0};                           // temporary array for the sum of calibration measurement
     
