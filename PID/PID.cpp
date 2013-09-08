@@ -4,7 +4,6 @@ PID::PID(float P, float I, float D, float Integral_Max)
 {
     Integral = 0;
     LastTime = 0;
-    SetPoint = 0;
     Integrate = true;
     PID::P = P;
     PID::I = I;

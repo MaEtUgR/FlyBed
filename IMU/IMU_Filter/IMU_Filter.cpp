@@ -2,7 +2,7 @@
 
 // IMU/AHRS
 #define PI 3.1415926535897932384626433832795
-#define Kp 2.0f         // proportional gain governs rate of convergence to accelerometer/magnetometer
+#define Kp 1.0f         // proportional gain governs rate of convergence to accelerometer/magnetometer
 #define Ki 0.005f       // integral gain governs rate of convergence of gyroscope biases
 
 IMU_Filter::IMU_Filter()
@@ -17,37 +17,44 @@ IMU_Filter::IMU_Filter()
 
 void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_data, const float * Comp_data)
 {
-    // IMU/AHRS (from http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/)
-        
-    float radGyro[3]; // Gyro in radians per second
-    for(int i=0; i<3; i++)
-        radGyro[i] = Gyro_data[i] * PI / 180;
-    
-    //IMUupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2]);
-    AHRSupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2], Comp_data[0], Comp_data[1], Comp_data[2]);
-    
-    float rangle[3]; // calculate angles in radians from quternion output, formula from Wiki (http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
-    rangle[0] = atan2(2*q0*q1 + 2*q2*q3, 1 - 2*(q1*q1 + q2*q2));
-    rangle[1] = asin(2*q0*q2 - 2*q3*q1);
-    rangle[2] = atan2(2*q0*q3 + 2*q1*q2, 1 - 2*(q2*q2 + q3*q3));
-    
-    // TODO
-    // Pitch should have a range of +/-90 degrees. 
-    // After you pitch past vertical (90 degrees) your roll and yaw value should swing 180 degrees. 
-    // A pitch value of 100 degrees is measured as a pitch of 80 degrees and inverted flight (roll = 180 degrees). 
-    // Another example is a pitch of 180 degrees (upside down). This is measured as a level pitch (0 degrees) and a roll of 180 degrees.
-    // And I think this solves the upside down issue...
-    // Handle roll reversal when inverted
-    /*if (Acc_data[2] < 0) {
-        if (Acc_data[0] < 0) {
-            rangle[1] = (180 - rangle[1]);
-        } else {
-            rangle[1] = (-180 - rangle[1]);
+    #if 1 // all gyro only
+        for(int i = 0; i < 3; i++) {
+            d_Gyro_angle[i] = Gyro_data[i] *dt;
+            angle[i] += d_Gyro_angle[i];
         }
-    }*/
+    #endif
     
-    for(int i=0; i<3; i++)  // angle in degree
-        angle[i] = rangle[i] * 180 / PI;
+    #if 0 // IMU/AHRS (from http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/)   
+        float radGyro[3]; // Gyro in radians per second
+        for(int i=0; i<3; i++)
+            radGyro[i] = Gyro_data[i] * PI / 180;
+        
+        //IMUupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2]);
+        AHRSupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2], Comp_data[0], Comp_data[1], Comp_data[2]);
+        
+        float rangle[3]; // calculate angles in radians from quternion output, formula from Wiki (http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
+        rangle[0] = atan2(2*q0*q1 + 2*q2*q3, 1 - 2*(q1*q1 + q2*q2));
+        rangle[1] = asin(2*q0*q2 - 2*q3*q1);
+        rangle[2] = atan2(2*q0*q3 + 2*q1*q2, 1 - 2*(q2*q2 + q3*q3));
+        
+        // TODO
+        // Pitch should have a range of +/-90 degrees. 
+        // After you pitch past vertical (90 degrees) your roll and yaw value should swing 180 degrees. 
+        // A pitch value of 100 degrees is measured as a pitch of 80 degrees and inverted flight (roll = 180 degrees). 
+        // Another example is a pitch of 180 degrees (upside down). This is measured as a level pitch (0 degrees) and a roll of 180 degrees.
+        // And I think this solves the upside down issue...
+        // Handle roll reversal when inverted
+        /*if (Acc_data[2] < 0) {
+            if (Acc_data[0] < 0) {
+                rangle[1] = (180 - rangle[1]);
+            } else {
+                rangle[1] = (-180 - rangle[1]);
+            }
+        }*/
+        
+        for(int i=0; i<3; i++)  // angle in degree
+            angle[i] = rangle[i] * 180 / PI;
+    #endif
 }
 
 //------------------------------------------------------------------------------------------------------------------

@@ -14,7 +14,7 @@ class I2C_Sensor
         virtual void read() = 0;        // read all axis from register to array data
         //TODO: virtual void calibrate() = 0;   // calibrate the sensor and if desired write calibration values to a file
         
-    protected:
+    //protected:
         // Calibration
         void saveCalibrationValues(float values[], int size, char * filename);
         void loadCalibrationValues(float values[], int size, char * filename);

@@ -30,10 +30,6 @@ public:
      * @param position see SetPosition
      */
     void operator=(int position);
-    
-    /** initialize ESC
-     */
-    void initialize();
 
 private:
     PwmOut ServoPin;

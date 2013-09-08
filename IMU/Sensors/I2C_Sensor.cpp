@@ -8,7 +8,7 @@ I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, char i2c_address) : i2c(sda, sc
 {
     I2C_Sensor::i2c_address = i2c_address;
     //i2c.frequency(400000); // standard speed
-    i2c.frequency(1000000); // ultrafast!
+    i2c.frequency(2000000); // ultrafast!
 }
 
 void I2C_Sensor::saveCalibrationValues(float values[], int size, char * filename)

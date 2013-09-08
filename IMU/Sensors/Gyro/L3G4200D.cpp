@@ -7,7 +7,7 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     //writeRegister(L3G4200D_CTRL_REG2, 0x05);               // control filter
     writeRegister(L3G4200D_CTRL_REG2, 0x00);            // highpass filter disabled
     writeRegister(L3G4200D_CTRL_REG3, 0x00);
-    writeRegister(L3G4200D_CTRL_REG4, 0x20);            // sets acuracy to 2000 dps (degree per second)
+    writeRegister(L3G4200D_CTRL_REG4, 0xA0);            // sets acuracy to 2000 dps (degree per second)
     
     writeRegister(L3G4200D_REFERENCE, 0x00);
     //writeRegister(L3G4200D_STATUS_REG, 0x0F);
@@ -21,15 +21,19 @@ L3G4200D::L3G4200D(PinName sda, PinName scl) : I2C_Sensor(sda, scl, L3G4200D_I2C
     //writeRegister(L3G4200D_INT1_DURATION, 0x00);
     
     writeRegister(L3G4200D_CTRL_REG5, 0x00);            // deactivates the filters (only use one of these options)
+    //writeRegister(L3G4200D_CTRL_REG5, 0x02);            // activates low pass filter
     //writeRegister(L3G4200D_CTRL_REG5, 0x12);          // activates both high and low pass filters
     //writeRegister(L3G4200D_CTRL_REG5, 0x01);          // activates high pass filter
     
-    writeRegister(L3G4200D_CTRL_REG1, 0x0F);            // starts Gyro measurement
+    writeRegister(L3G4200D_CTRL_REG1, 0xBF);            // starts Gyro measurement with 400Hz ODR (don't use 800Hz ODR it has peaks in the ADC measurements!!)
     
-    //calibrate(50, 0.01);
+    calibrate(50, 0.02);
 }
 
 void L3G4200D::read() {
+    if (!(readRegister(L3G4200D_STATUS_REG) & 8))
+        return;
+        
     readraw();                                          // read raw measurement data
     
     for (int i = 0; i < 3; i++)
