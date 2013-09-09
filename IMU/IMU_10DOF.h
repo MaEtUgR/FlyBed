@@ -22,17 +22,18 @@ class IMU_10DOF
         float pressure;
         float altitude;
         
-        float dt;                       // local time to calculate processing speed for entire loop and just reading sensors
-        float dt_sensors;               // |
-    //private:                            // |
-        Timer LocalTimer;               // |
-        float time_for_dt;              // |
-        float time_for_dt_sensors;      // |
+        float dt;                       // time for entire loop
+        float dt_sensors;               // time only to read sensors
         
         L3G4200D    Gyro;               // All sensors Hardwaredrivers
         ADXL345     Acc;
         HMC5883     Comp;
         BMP085      Alt;
+            
+    private:                            
+        Timer LocalTimer;               // local time to calculate processing speed for entire loop and just reading sensors
+        float time_for_dt;              // |
+        float time_for_dt_sensors;      // |
         
         IMU_Filter  Filter;             // Filterclass to join sensor data
 };

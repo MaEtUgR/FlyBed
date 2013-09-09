@@ -2,7 +2,7 @@
 
 // IMU/AHRS
 #define PI 3.1415926535897932384626433832795
-#define Kp 1.0f         // proportional gain governs rate of convergence to accelerometer/magnetometer
+#define Kp 2.0f         // proportional gain governs rate of convergence to accelerometer/magnetometer
 #define Ki 0.005f       // integral gain governs rate of convergence of gyroscope biases
 
 IMU_Filter::IMU_Filter()
@@ -17,14 +17,16 @@ IMU_Filter::IMU_Filter()
 
 void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_data, const float * Comp_data)
 {
-    #if 1 // all gyro only
+    #if 0 // all gyro only
         for(int i = 0; i < 3; i++) {
             d_Gyro_angle[i] = Gyro_data[i] *dt;
             angle[i] += d_Gyro_angle[i];
         }
     #endif
     
-    #if 0 // IMU/AHRS (from http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/)   
+    angle[2] += Gyro_data[2] *dt; // ATTENTION YAW IS GYRO ONLY
+    
+    #if 1 // IMU/AHRS (from http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/)   
         float radGyro[3]; // Gyro in radians per second
         for(int i=0; i<3; i++)
             radGyro[i] = Gyro_data[i] * PI / 180;
@@ -52,7 +54,7 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
             }
         }*/
         
-        for(int i=0; i<3; i++)  // angle in degree
+        for(int i=0; i<2; i++)  // angle in degree
             angle[i] = rangle[i] * 180 / PI;
     #endif
 }

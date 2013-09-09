@@ -3,9 +3,9 @@
 ADXL345::ADXL345(PinName sda, PinName scl) : I2C_Sensor(sda, scl, ADXL345_I2C_ADDRESS)
 {
     #warning these three offsets are calibration values to make shure the measurement is 0 when no acceleration is present
-    offset[0] = -9.1; // offset calculated by hand... (min + ((max - min) / 2)
-    offset[1] = -7.1; // TODO: make this automatic with saving to filesystem
-    offset[2] = 6;
+    offset[0] = -18; // offset calculated by hand... (min + ((max - min) / 2)
+    offset[1] = -17; // TODO: make this automatic with saving to filesystem
+    offset[2] = 20;
     
     // Set Offset  - programmed into the OFSX, OFSY, and OFXZ registers, respectively, as 0xFD, 0x03 and 0xFE.
     writeRegister(ADXL345_OFSX_REG, 0xFA); // to get these offsets just lie your sensor down on the table always the axis pointing down to earth has 200+ and the others should have more or less 0

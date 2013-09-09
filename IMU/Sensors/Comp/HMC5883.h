@@ -21,11 +21,11 @@ class HMC5883 : public I2C_Sensor
         virtual void read();            // read all axis from register to array data
         void calibrate(int s);
         float get_angle();
+        
+        float offset[3];                        // calibration offset
          
     private:
         virtual void readraw();                 // function to get raw data
-        
-        float offset[3];                        // calibration offset
 };
 
 #endif

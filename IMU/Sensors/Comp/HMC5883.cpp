@@ -3,9 +3,9 @@
 HMC5883::HMC5883(PinName sda, PinName scl) : I2C_Sensor(sda, scl, HMC5883_I2C_ADDRESS)
 {   
     #warning these three offsets are calibration values to get |MAX| = |MIN|
-    offset[0] = -155; // offset calculated by hand... (min + ((max - min) / 2)
-    offset[1] = -142; // TODO: make this automatic with saving to filesystem
-    offset[2] = -33.5;
+    offset[0] = 189.5; // offset calculated by hand... (min + ((max - min) / 2)
+    offset[1] = -92.5; // TODO: make this automatic with saving to filesystem
+    offset[2] = 29;
     
     // load calibration values
     //loadCalibrationValues(scale, 3, "COMPASS_SCALE.txt");
@@ -43,6 +43,7 @@ void HMC5883::calibrate(int s)
     }
     
     for(int i = 0; i < 3; i++) {
+        offset[i] = (float)Min[i] + ((Max[i] - Min[i]) / 2);
         //scale[i]= 2000 / (float)(Max[i]-Min[i]);            // calculate scale and offset out of the measured maxima and minima
         //offset[i]= 1000 - (float)(Max[i]) * scale[i];       // the lower bound is -1000, the higher one 1000
     }
