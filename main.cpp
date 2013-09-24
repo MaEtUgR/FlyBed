@@ -24,10 +24,9 @@
 
 bool  armed = false;                    // this variable is for security (when false no motor rotates any more)
 bool  RC_present = false;               // this variable shows if an RC is present
-float P = 15, I = 8, D = 2.73;          // PID values
+float P = 13.16, I = 8, D = 2.73;          // PID values
 float PY = 5.37, IY = 0, DY = 3;           // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
-float controller_value = 0;             // The calculated answer form the Controller
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
 
 LED         LEDs;
@@ -79,9 +78,9 @@ int main() {
         
         // Setting PID Values from auxiliary RC channels
         if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
-            P = ((float)RC[CHANNEL8].read()) * 20  / 1000;
+            P = 13 + (((float)RC[CHANNEL8].read()) * 7  / 1000);
         if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
-            D = ((float)RC[CHANNEL7].read()) * 6  / 1000;
+            D = 2 + (((float)RC[CHANNEL7].read()) * 4  / 1000);
         for(int i=0;i<2;i++)
             Controller[i].setPID(P,I,D); // give the new PID values to roll and pitch controller
         Controller[YAW].setPID(PY,IY,DY);
@@ -145,8 +144,9 @@ int main() {
                 ESC[i] = 0;
         }
         
-        //pc.printf("%d,%.3f,%.3f,%.3f,%.5fs,%.5fs,%4d,%4d,%4d,%4d\r\n", armed, IMU.angle[0], IMU.angle[1], IMU.angle[2], IMU.dt, IMU.dt_sensors, RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read());
-        pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], controller_value, RC_angle[YAW], IMU.dt);
+        pc.printf("%d,%.3f,%.3f,%.3f,%.5f,%.5f,%.3f,%.2f,%.2f\r\n", armed, Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW], P, D); // RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read()
+        //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
+        //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
         //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.5f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], IMU.Gyro.data[0], IMU.Gyro.data[1], IMU.Gyro.data[2], IMU.dt);
         
         //wait(0.01);
