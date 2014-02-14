@@ -53,13 +53,15 @@ class ADXL345 : public I2C_Sensor
 {
     public:
         ADXL345(PinName sda, PinName scl);                  // constructor, uses I2C_Sensor class
-        virtual void read();                                // read all axis to array
+        float data[3];                                      // where the measured data is saved
+        void read();                                        // read all axis to array
         
         float offset[3];                                    // offset that's subtracted from every measurement
         void calibrate(int times, float separation_time);   // calibration from 'times' measurements with 'separation_time' time between (get an offset while not moving)
        
     private:
-        virtual void readraw();
+        int raw[3];
+        void readraw();
 };
 
 #endif

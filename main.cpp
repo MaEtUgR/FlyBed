@@ -1,10 +1,11 @@
 #include "mbed.h"       // Standard Library
 #include "LED.h"        // LEDs framework for blinking ;)
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
-#include "L3G4200D.h"   // Gyro (Gyroscope)
-#include "ADXL345.h"    // Acc (Accelerometer)
-#include "HMC5883.h"    // Comp (Compass)
-#include "BMP085_old.h"     // Alt (Altitude sensor)
+#include "MPU6050.h"    // Combined Gyro and Acc
+//#include "L3G4200D.h"   // Gyro (Gyroscope)
+//#include "ADXL345.h"    // Acc (Accelerometer)
+//#include "HMC5883.h"    // Comp (Compass)
+//#include "BMP085_old.h"     // Alt (Altitude sensor)
 #include "RC_Channel.h" // RemoteControl Channels with PPM
 #include "Servo_PWM.h"  // Motor PPM using PwmOut
 #include "PID.h"        // PID Library (slim, self written)
@@ -27,7 +28,7 @@
 #define PITCH           1
 #define YAW             2
 
-#define PC_CONNECTED // decoment if you want to debug per USB/Bluetooth and your PC
+#define PC_CONNECTED // decomment if you want to debug per USB/Bluetooth and your PC
 
 // Global variables
 bool    armed = false;                  // this variable is for security (when false no motor rotates any more)
@@ -54,13 +55,14 @@ Ticker Dutycycler;                      // timecontrolled interrupt for exact ti
 // Initialisation of hardware (see includes for more info)
 LED         LEDs;
 #ifdef PC_CONNECTED
-    //PC          pc(USBTX, USBRX, 115200);    // USB
-    PC          pc(p9, p10, 115200);       // Bluetooth
+    PC          pc(USBTX, USBRX, 115200);    // USB
+    //PC          pc(p9, p10, 115200);       // Bluetooth
 #endif
-L3G4200D    Gyro(p28, p27);
-ADXL345     Acc(p28, p27);
-HMC5883     Comp(p28, p27);
-BMP085_old      Alt(p28, p27);
+MPU6050     Sensor(p28, p27);
+//L3G4200D    Gyro(p28, p27);
+//ADXL345     Acc(p28, p27);
+//HMC5883     Comp(p28, p27);
+//BMP085_old      Alt(p28, p27);
 RC_Channel  RC[] = {RC_Channel(p5,1), RC_Channel(p6,2), RC_Channel(p8,4), RC_Channel(p7,3)};                                // no p19/p20 !
 Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
 IMU_Filter  IMU;    // (don't write () after constructor for no arguments!)
@@ -71,8 +73,9 @@ void dutycycle() { // method which is called by the Ticker Dutycycler every RATE
     time_read_sensors = GlobalTimer.read(); // start time measure for sensors
     
     // read data from sensors // ATTENTION! the I2C option repeated true is important because otherwise interrupts while bus communications cause crashes
-    Gyro.read();
-    Acc.read();
+    Sensor.read();
+    //Gyro.read();
+    //Acc.read();
     //Comp.read(); // TODO: not every loop every sensor? altitude not that important
     //Alt.Update(); // TODO needs very long to read because of waits
     
@@ -84,7 +87,8 @@ void dutycycle() { // method which is called by the Ticker Dutycycler every RATE
     dt = GlobalTimer.read() - time_for_dt; // time in us since last loop
     time_for_dt = GlobalTimer.read();      // set new time for next measurement
     
-    IMU.compute(dt, Gyro.data, Acc.data);
+    IMU.compute(dt, Sensor.data_gyro, Sensor.data_acc);
+    //IMU.compute(dt, Gyro.data, Acc.data);
     //pc.printf("%f,%f,%f,%3.5fs,%3.5fs\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], dt, dt_read_sensors);
 
     if(RC[AILERON].read() == -100 || RC[ELEVATOR].read() == -100 || RC[RUDDER].read() == -100 || RC[THROTTLE].read() == -100)
@@ -147,7 +151,7 @@ void dutycycle() { // method which is called by the Ticker Dutycycler every RATE
         for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
             ESC[i] = 0;
     }
-    pc.printf("%d,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,%f\r\n",
+    /*pc.printf("%d,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,%f\r\n",
         armed,
         dt,
         dt_read_sensors,
@@ -157,6 +161,24 @@ void dutycycle() { // method which is called by the Ticker Dutycycler every RATE
         RC_angle[ROLL], 
         RC_angle[PITCH], 
         RC_angle[YAW], 
+        controller_value[ROLL], 
+        controller_value[PITCH], 
+        controller_value[YAW], 
+        MIX.Motor_speed[0], 
+        MIX.Motor_speed[1], 
+        MIX.Motor_speed[2], 
+        MIX.Motor_speed[3]);*/
+        
+    pc.printf("%f,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,  %f,%f,%f,%f\r\n",
+        IMU.angle[ROLL], 
+        IMU.angle[PITCH], 
+        IMU.angle[YAW],
+        Sensor.data_gyro[0],
+        Sensor.data_gyro[1],
+        Sensor.data_gyro[2],
+        Sensor.data_acc[0],
+        Sensor.data_acc[1],
+        Sensor.data_acc[2],  
         controller_value[ROLL], 
         controller_value[PITCH], 
         controller_value[YAW], 
@@ -200,8 +222,9 @@ int main() { // main programm for initialisation and debug output
     #endif
     LEDs.roll(2);
     
-    Gyro.calibrate(50, 0.02);
-    Acc.calibrate(50, 0.02);
+    Sensor.calibrate(50, 0.02);
+    //Gyro.calibrate(50, 0.02);
+    //Acc.calibrate(50, 0.02);
     
     // Start!
     GlobalTimer.start();

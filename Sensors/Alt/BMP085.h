@@ -12,8 +12,8 @@ class BMP085 : public I2C_Sensor
 {           
     public:
         BMP085(PinName sda, PinName scl);
-        
-        //virtual void read();
+        float data;                  // where the measured data is saved
+        //void read();
         
         void calibrate(int s);
         
@@ -21,7 +21,7 @@ class BMP085 : public I2C_Sensor
          
     private:
         // raw data and function to measure it
-        int raw[3];
+        int raw;
         //void readraw();
         
         // calibration parameters and their saving
