@@ -18,14 +18,14 @@ class HMC5883 : public I2C_Sensor
     public:
         HMC5883(PinName sda, PinName scl);
         
-        virtual void read();            // read all axis from register to array data
+        void read();            // read all axis from register to array data
         void calibrate(int s);
         float get_angle();
         
         float offset[3];                        // calibration offset
          
     private:
-        virtual void readraw();                 // function to get raw data
+        void readraw();                 // function to get raw data
 };
 
 #endif

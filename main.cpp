@@ -111,16 +111,16 @@ int main() {
         // Controlling
         for(int i=0;i<2;i++) {
             Controller[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-            Controller[i].compute(RC_angle[i], IMU.angle[i], IMU.Gyro.data[i]); // give the controller the actual gyro values for D and angle for P,I and get his advice to correct
+            Controller[i].compute(RC_angle[i], IMU.angle[i], IMU.Sensor.data_gyro[i]); // give the controller the actual gyro values for D and angle for P,I and get his advice to correct
         }
         Controller[YAW].setIntegrate(armed); // same for YAW
         if (abs(RC_angle[YAW] - IMU.angle[YAW]) > 180)  // for YAW a special calculation because of range -180 to 180
              if (RC_angle[YAW] > IMU.angle[YAW])
-                Controller[YAW].compute(RC_angle[YAW] - 360, IMU.angle[YAW], IMU.Gyro.data[YAW]);
+                Controller[YAW].compute(RC_angle[YAW] - 360, IMU.angle[YAW], IMU.Sensor.data_gyro[YAW]);
              else
-                Controller[YAW].compute(RC_angle[YAW] + 360, IMU.angle[YAW], IMU.Gyro.data[YAW]);
+                Controller[YAW].compute(RC_angle[YAW] + 360, IMU.angle[YAW], IMU.Sensor.data_gyro[YAW]);
         else
-            Controller[YAW].compute(RC_angle[YAW], IMU.angle[YAW], IMU.Gyro.data[YAW]);
+            Controller[YAW].compute(RC_angle[YAW], IMU.angle[YAW], IMU.Sensor.data_gyro[YAW]);
         
         // Mixing
         if (armed) // for SECURITY!
@@ -144,7 +144,8 @@ int main() {
                 ESC[i] = 0;
         }
         
-        pc.printf("%d,%.3f,%.3f,%.3f,%.5f,%.5f,%.3f,%.2f,%.2f\r\n", armed, Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW], P, D); // RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read()
+        //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", IMU.Acc.data[0], IMU.Acc.data[1], IMU.Acc.data[2], D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
+        pc.printf("%d,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%.2f,%.2f\r\n", armed, IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW], Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, P, D); // RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read()
         //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
         //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
         //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.5f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], IMU.Gyro.data[0], IMU.Gyro.data[1], IMU.Gyro.data[2], IMU.dt);

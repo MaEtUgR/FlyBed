@@ -31,8 +31,8 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
         for(int i=0; i<3; i++)
             radGyro[i] = Gyro_data[i] * PI / 180;
         
-        //IMUupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2]);
-        AHRSupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2], Comp_data[0], Comp_data[1], Comp_data[2]);
+        IMUupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2]);
+        //AHRSupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2], Comp_data[0], Comp_data[1], Comp_data[2]);
         
         float rangle[3]; // calculate angles in radians from quternion output, formula from Wiki (http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
         rangle[0] = atan2(2*q0*q1 + 2*q2*q3, 1 - 2*(q1*q1 + q2*q2));

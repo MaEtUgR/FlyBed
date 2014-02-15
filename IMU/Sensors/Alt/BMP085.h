@@ -46,7 +46,7 @@ class BMP085 : public I2C_Sensor {
     public:
         BMP085(PinName sda, PinName scl);
         
-        virtual void read();
+        void read();
         float Temperature, Pressure, Altitude;
          
     private:
@@ -54,7 +54,7 @@ class BMP085 : public I2C_Sensor {
         unsigned short AC4, AC5, AC6;
         short oss;
         
-        virtual void readraw();
+        void readraw();
 };
 
 #endif

@@ -11,7 +11,6 @@ class I2C_Sensor
         I2C_Sensor(PinName sda, PinName scl, char address);
         
         float data[3];                  // where the measured data is saved
-        virtual void read() = 0;        // read all axis from register to array data
         //TODO: virtual void calibrate() = 0;   // calibrate the sensor and if desired write calibration values to a file
         
     //protected:
@@ -26,7 +25,6 @@ class I2C_Sensor
         
         // raw data and function to measure it
         short raw[3];
-        virtual void readraw() = 0;
         
     private:
         I2C i2c;            // original mbed I2C-library just to initialise the control registers
