@@ -8,7 +8,7 @@
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
-#define MPU6050_I2C_ADDRESS         0xD0 // adresses above multiplied by 2
+#define MPU6050_I2C_ADDRESS         0xD2 // adresses above multiplied by 2
 
 // register addresses
 #define MPU6050_RA_XG_OFFS_TC       0x00 //[7] PWR_MODE, [6:1] XG_OFFS_TC, [0] OTP_BNK_VLD
@@ -134,8 +134,9 @@ class MPU6050 : public I2C_Sensor
         void calibrate(int times, float separation_time);   // calibration from 'times' measurements with 'separation_time' time between (get an offset while not moving)
         int readTemp();                                     // read temperature from sensor
         
-    private:
         int raw_gyro[3];
+    private:
+        
         int raw_acc[3];
         void readraw_gyro();
         void readraw_acc();

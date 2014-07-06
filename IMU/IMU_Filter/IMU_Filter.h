@@ -38,8 +38,8 @@ class IMU_Filter
         // IMU/AHRS
         float q0, q1, q2, q3;   // quaternion elements representing the estimated orientation
         float exInt , eyInt , ezInt;  // scaled integral error
-        void IMUupdate(float halfT, float gx, float gy, float gz, float ax, float ay, float az);
-        void AHRSupdate(float halfT, float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
+        void IMUupdate(float halfT, float gx, float gy, float gz, float ax, float ay, float az);                                // 6DOF without compass
+        void AHRSupdate(float halfT, float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz); // 9DOF with compass
     private:
         float d_Gyro_angle[3];
         void get_Acc_angle(const float * Acc_data);

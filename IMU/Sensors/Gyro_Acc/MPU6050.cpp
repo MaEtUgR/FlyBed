@@ -15,10 +15,21 @@ void MPU6050::read()
     readraw_acc();
     
     for (int i = 0; i < 3; i++)
-        data_gyro[i] = (raw_gyro[i] - offset_gyro[i])*0.07;             // subtract offset from calibration and multiply unit factor (datasheet s.10)
+        data_gyro[i] = (raw_gyro[i] - offset_gyro[i])*0.07;             // subtract offset from calibration and multiply unit factor to get degree per second (datasheet s.10)
     
     for (int i = 0; i < 3; i++)
         data_acc[i] = raw_acc[i] - offset_acc[i];             // TODO: didn't care about units because IMU-algorithm just uses vector direction
+
+    // I have to swich coordinates on my board to match the ones of the other sensors (clear this part if you use the raw coordinates of the sensor)
+    float tmp = 0;
+    tmp = data_gyro[0];
+    data_gyro[0] = data_gyro[1];
+    data_gyro[1] = -tmp;
+    data_gyro[2] = data_gyro[2];
+    tmp = data_acc[0];
+    data_acc[0] = data_acc[1];
+    data_acc[1] = -tmp;
+    data_acc[2] = data_acc[2];
 }
 
 int MPU6050::readTemp()
@@ -33,7 +44,7 @@ void MPU6050::readraw_gyro()
 {
     char buffer[6];                                     // 8-Bit pieces of axis data
     
-    readMultiRegister(MPU6050_RA_GYRO_XOUT_H | (1 << 7), buffer, 6); // read axis registers using I2C   // TODO: why?!   | (1 << 7)
+    if(readMultiRegister(MPU6050_RA_GYRO_XOUT_H | (1 << 7), buffer, 6) != 0) return; // read axis registers using I2C   // TODO: why?!   | (1 << 7)
     
     raw_gyro[0] = (short) (buffer[0] << 8 | buffer[1]);     // join 8-Bit pieces to 16-bit short integers
     raw_gyro[1] = (short) (buffer[2] << 8 | buffer[3]);

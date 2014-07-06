@@ -25,7 +25,7 @@ void PID::compute(float DesiredAngle, float Angle, float Gyro_data) {
     float Error =  Angle - DesiredAngle;
     
     // Integral
-    if (dt > 2 || !Integrate) // Todo: 2 secs is the maximal time between two computations
+    if (dt > 2 || !Integrate) // TODO: 2 secs is the maximal time between two computations
         Integral = 0;
     else if (abs(Integral + Error) <= Integral_Max)
         Integral += Error * dt;

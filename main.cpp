@@ -5,7 +5,7 @@
 #include "IMU_10DOF.h"  // Complete IMU class for 10DOF-Board (L3G4200D, ADXL345, HMC5883, BMP085)
 #include "RC_Channel.h" // RemoteControl Channels with PPM
 #include "PID.h"        // PID Library (slim, self written)
-#include "Servo_PWM.h"  // Motor PPM using PwmOut
+#include "Servo.h"      // Motor PPM using any DigitalOut Pin
 
 #define PPM_FREQU       495     // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define INTEGRAL_MAX    300     // maximal output offset that can result from integrating errors
@@ -22,12 +22,19 @@
 #define PITCH           1
 #define YAW             2
 
-bool  armed = false;                    // this variable is for security (when false no motor rotates any more)
-bool  RC_present = false;               // this variable shows if an RC is present
-float P = 13.16, I = 8, D = 2.73;          // PID values
-float PY = 5.37, IY = 0, DY = 3;           // PID values for Yaw
+bool  armed = false;                    // is for security (when false no motor rotates any more)
+bool  debug = true;                    // shows if we want output for the computer
+bool  RC_present = false;               // shows if an RC is present
+float P = 0, I = 0, D = 0;
+//float P = 13.16, I = 8, D = 2.73;          // PID values
+float PY = 0, IY = 0, DY = 0;
+//float PY = 5.37, IY = 0, DY = 3;           // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
+float * command_pointer = &D;
+
+/*float max[3] = {-10000,-10000,-10000};
+float min[3] = {10000,10000,10000};*/
 
 LED         LEDs;
 PC          pc(USBTX, USBRX, 921600);   // USB
@@ -35,7 +42,7 @@ PC          pc(USBTX, USBRX, 921600);   // USB
 IMU_10DOF   IMU(p28, p27);
 RC_Channel  RC[] = {RC_Channel(p8,1), RC_Channel(p7,2), RC_Channel(p5,4), RC_Channel(p6,3), RC_Channel(p15,2), RC_Channel(p16,4), RC_Channel(p17,3)};                                    // no p19/p20 !
 PID         Controller[] = {PID(P, I, D, INTEGRAL_MAX), PID(P, I, D, INTEGRAL_MAX), PID(PY, IY, DY, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
-Servo_PWM   ESC[] = {Servo_PWM(p21,PPM_FREQU), Servo_PWM(p22,PPM_FREQU), Servo_PWM(p23,PPM_FREQU), Servo_PWM(p24,PPM_FREQU)};   // p21 - p26 only because PWM needed!
+Servo       ESC[] = {Servo(p21,PPM_FREQU), Servo(p22,PPM_FREQU), Servo(p23,PPM_FREQU), Servo(p24,PPM_FREQU)};   // use any DigitalOit Pin
 
 extern "C" void mbed_reset();
 
@@ -43,6 +50,8 @@ void executer() {
     char command = pc.getc();
     if (command == 'X')
         mbed_reset();
+    if (command == '-')
+        debug = !debug;
     if (command == 'A') {
         IMU.Acc.calibrate(100,0.05);
         pc.printf("\r\n***A***%.3f,%.3f,%.3f***\r\n", IMU.Acc.offset[ROLL], IMU.Acc.offset[PITCH], IMU.Acc.offset[YAW]);
@@ -78,9 +87,9 @@ int main() {
         
         // Setting PID Values from auxiliary RC channels
         if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
-            P = 13 + (((float)RC[CHANNEL8].read()) * 7  / 1000);
-        if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
-            D = 2 + (((float)RC[CHANNEL7].read()) * 4  / 1000);
+            D = 0 + (((float)RC[CHANNEL8].read()) * 15  / 1000);
+        /*if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
+            D = 2 + (((float)RC[CHANNEL7].read()) * 4  / 1000);*/
         for(int i=0;i<2;i++)
             Controller[i].setPID(P,I,D); // give the new PID values to roll and pitch controller
         Controller[YAW].setPID(PY,IY,DY);
@@ -123,34 +132,50 @@ int main() {
             Controller[YAW].compute(RC_angle[YAW], IMU.angle[YAW], IMU.Sensor.data_gyro[YAW]);
         
         // Mixing
+        Motor_speed[2] = RC[THROTTLE].read()   + Controller[PITCH].Value;
+        Motor_speed[0] = RC[THROTTLE].read()   - Controller[PITCH].Value;
+        Motor_speed[1] = RC[THROTTLE].read()   + Controller[ROLL].Value;
+        Motor_speed[3] = RC[THROTTLE].read()   - Controller[ROLL].Value;
+        
+        Motor_speed[0] -= Controller[YAW].Value;
+        Motor_speed[2] -= Controller[YAW].Value;
+        Motor_speed[3] += Controller[YAW].Value;
+        Motor_speed[1] += Controller[YAW].Value;
+        
         if (armed) // for SECURITY!
         {       
-                Motor_speed[0] = RC[THROTTLE].read()   + Controller[PITCH].Value;
-                Motor_speed[2] = RC[THROTTLE].read()   - Controller[PITCH].Value;
-                Motor_speed[3] = RC[THROTTLE].read()   + Controller[ROLL].Value;
-                Motor_speed[1] = RC[THROTTLE].read()   - Controller[ROLL].Value;
-                
-                Motor_speed[0] -= Controller[YAW].Value;
-                Motor_speed[2] -= Controller[YAW].Value;
-                Motor_speed[3] += Controller[YAW].Value;
-                Motor_speed[1] += Controller[YAW].Value;
-                
-                
-                for(int i=0;i<4;i++)   // Set new motorspeeds
-                    ESC[i] = (int)Motor_speed[i];
+                ESC[0] = (int)Motor_speed[0];
+                ESC[2] = (int)Motor_speed[2];
+                //for(int i=0;i<4;i++)   // Set new motorspeeds
+                    //ESC[i] = (int)Motor_speed[i];
                 
         } else {
             for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
                 ESC[i] = 0;
         }
         
+        if (debug) {
         //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", IMU.Acc.data[0], IMU.Acc.data[1], IMU.Acc.data[2], D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
-        pc.printf("%d,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%.2f,%.2f\r\n", armed, IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW], Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, P, D); // RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read()
+        //MAIN OUTPUT pc.printf("%d,%.1f,%.1f,%.1f,%.3f,%.3f,%.3f,%.2f,%.2f\r\n", armed, IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW], Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, P, D); // RC[0].read(), RC[1].read(), RC[2].read(), RC[3].read()
         //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
         //pc.printf("%d,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", armed, P, PY, D, IMU.angle[PITCH], Controller[PITCH].Value, RC_angle[YAW], IMU.dt);
-        //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.5f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], IMU.Gyro.data[0], IMU.Gyro.data[1], IMU.Gyro.data[2], IMU.dt);
-        
-        //wait(0.01);
+        //pc.printf("%+.3f,%+.3f,%+.3f,%+.3f,%+.3f,%+.3f,%.5f\r\n", IMU.angle[0], IMU.angle[1], IMU.angle[2], IMU.Sensor.data_gyro[0], IMU.Sensor.data_gyro[1], IMU.Sensor.data_gyro[2], IMU.dt);
+            pc.printf("$STATE,%d,%.3f\r\n", armed, IMU.dt);
+            pc.printf("$RC,%d,%d,%d,%d,%d,%d,%d\r\n", RC[AILERON].read(), RC[ELEVATOR].read(), RC[RUDDER].read(), RC[THROTTLE].read(), RC[CHANNEL6].read(), RC[CHANNEL7].read(), RC[CHANNEL8].read());
+            pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.Sensor.data_gyro[ROLL], IMU.Sensor.data_gyro[PITCH], IMU.Sensor.data_gyro[YAW]);
+            pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.Sensor.data_acc[ROLL], IMU.Sensor.data_acc[PITCH], IMU.Sensor.data_acc[YAW]);
+            pc.printf("$ANG,%.3f,%.3f,%.3f\r\n", IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW]);
+            pc.printf("$CONT,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller[ROLL].Value, Controller[PITCH].Value, Controller[YAW].Value, P, I, D);
+            pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
+            /*for (int i=0;i<3;i++) {
+                min[i] = IMU.Sensor.data_gyro[i]<min[i] ? IMU.Sensor.data_gyro[i] : min[i];
+                max[i] = IMU.Sensor.data_gyro[i]>max[i] ? IMU.Sensor.data_gyro[i] : max[i];
+            }*/
+            //pc.printf("%.5f\r\n", IMU.dt);
+            //pc.printf("%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n", IMU.Sensor.raw_gyro[ROLL], IMU.Sensor.raw_gyro[PITCH], IMU.Sensor.raw_gyro[YAW], min[0], min[1], min[2], max[0], max[1], max[2]);
+            //pc.printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", IMU.Sensor.data_gyro[ROLL], IMU.Sensor.data_gyro[PITCH], IMU.Sensor.data_gyro[YAW], min[0], min[1], min[2], max[0], max[1], max[2]);
+            wait(0.04);
+        }
 
         LEDs.rollnext();
     }

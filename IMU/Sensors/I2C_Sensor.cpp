@@ -4,11 +4,11 @@
 #define GET_I2C_WRITE_ADDRESS(ADR)  (ADR << 1&0xFE) // ADR & 1111 1110
 #define GET_I2C_READ_ADDRESS(ADR)   (ADR << 1|0x01) // ADR | 0000 0001
 
-I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, char i2c_address) : i2c(sda, scl), local("local")
+I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, char i2c_address) : i2c(sda, scl), modi2c(sda, scl), local("local")
 {
     I2C_Sensor::i2c_address = i2c_address;
-    //i2c.frequency(400000); // standard speed
-    i2c.frequency(1000000); // ultrafast!
+    i2c.frequency(400000); // standard speed
+    //i2c.frequency(1000000); // ultrafast!
 }
 
 void I2C_Sensor::saveCalibrationValues(float values[], int size, char * filename)
@@ -27,10 +27,8 @@ void I2C_Sensor::loadCalibrationValues(float values[], int size, char * filename
     fclose(fp);
 }
 
-// TODO TODO TODO--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// ATTENTION!!! there was a problem with other interrupts disturbing the i2c communication of the chip... that's why I use I2C to initialise the sonsors and MODI2C to get the data (only made with readMultiRegister)
-// IT DIDN'T WORK STABLE IN OTHER COMBINATIONS (if someone has an idea why please let me know)
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// I2C functions --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 char I2C_Sensor::readRegister(char reg)
 {
@@ -48,8 +46,9 @@ void I2C_Sensor::writeRegister(char reg, char data)
     i2c.write(i2c_address, buffer, 2);
 }
 
-void I2C_Sensor::readMultiRegister(char reg, char* output, int size)
+int I2C_Sensor::readMultiRegister(char reg, char* output, int size)
 {
-    i2c.write (i2c_address, &reg, 1); // tell register address of the MSB get the sensor to do slave-transmit subaddress updating.
-    i2c.read  (i2c_address, output, size); // tell it where to store the data read
+    if (0 != i2c.write (i2c_address, &reg, 1)) return 1; // tell register address of the MSB get the sensor to do slave-transmit subaddress updating.
+    if (0 != i2c.read  (i2c_address, output, size)) return 1; // tell it where to store the data read
+    return 0;
 }

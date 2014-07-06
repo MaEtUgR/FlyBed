@@ -60,7 +60,7 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
 }
 
 //------------------------------------------------------------------------------------------------------------------
-// Code copied from S.O.H. Madgwick (File AHRS.c from https://code.google.com/p/imumargalgorithm30042010sohm/)
+// Code copied from S.O.H. Madgwick (File IMU.c and AHRS.c from https://code.google.com/p/imumargalgorithm30042010sohm/)
 //------------------------------------------------------------------------------------------------------------------
 
 // IMU
