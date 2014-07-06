@@ -4,7 +4,7 @@
 #define GET_I2C_WRITE_ADDRESS(ADR)  (ADR << 1&0xFE) // ADR & 1111 1110
 #define GET_I2C_READ_ADDRESS(ADR)   (ADR << 1|0x01) // ADR | 0000 0001
 
-I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, char i2c_address) : i2c(sda, scl), modi2c(sda, scl), local("local")
+I2C_Sensor::I2C_Sensor(PinName sda, PinName scl, char i2c_address) : i2c(sda, scl), local("local")
 {
     I2C_Sensor::i2c_address = i2c_address;
     i2c.frequency(400000); // standard speed

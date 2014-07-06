@@ -4,7 +4,6 @@
 #define I2C_Sensor_H
 
 #include "mbed.h"
-#include "MODI2C.h"
 
 class I2C_Sensor
 {           
@@ -29,7 +28,6 @@ class I2C_Sensor
         
     private:
         I2C i2c;            // original mbed I2C-library just to initialise the control registers
-        MODI2C modi2c;
         char i2c_address;   // address
         
         LocalFileSystem local; // file access to save calibration values
