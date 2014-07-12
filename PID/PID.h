@@ -8,7 +8,7 @@
 class PID {
     public:
         PID(float P, float I, float D, float Integral_Max);
-        void compute(float DesiredAngle, float Angle, float Gyro_data);
+        float compute(float SetPoint, float ProcessValue);
         void setIntegrate(bool Integrate);
         void setPID(float P, float I, float D);
         
@@ -24,7 +24,7 @@ class PID {
         float Integral_Max; // maximum that the sum of all errors can get (not important: last error not counted)
         bool Integrate; // if the integral is used / the controller is in use
         
-        float PreviousGyro_data; // the Gyro measurement of the last computation to get derivative
+        float PreviousError; // the Error of the last computation to get derivative
 };
 
 #endif

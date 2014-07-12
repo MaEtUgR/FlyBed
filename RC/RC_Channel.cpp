@@ -20,7 +20,8 @@ int RC_Channel::read()
     if(time == -100)
         return time;
     float result = scale * (float)(time) + offset; // calibration of the readings
-    return (result > 490 && result < 510) ? 500 : result; // make the middle of the stickpositions non drifting
+    return result;
+    //return (result > 490 && result < 510) ? 500 : result; // make the middle of the stickpositions non drifting
 }
 
 void RC_Channel::rise()
