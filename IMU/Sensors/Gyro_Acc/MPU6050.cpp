@@ -5,7 +5,19 @@ MPU6050::MPU6050(PinName sda, PinName scl) : I2C_Sensor(sda, scl, MPU6050_I2C_AD
     // Turns on the MPU6050's gyro and initializes it
     // register datasheet: http://www.invensense.com/mems/gyro/documents/RM-MPU-6000A.pdf
     writeRegister(MPU6050_RA_PWR_MGMT_1, 0x01);         // wake up from sleep and chooses Gyro X-Axis as Clock source (stadard sleeping and with inacurate clock is 0x40)
-    writeRegister(MPU6050_RA_CONFIG, 0x03);
+    writeRegister(MPU6050_RA_CONFIG, 0x03);   
+    /*
+    last 3 Bits of   |Accelerometer(Fs=1kHz) |Gyroscope 
+    MPU6050_RA_CONFIG|Bandwidth(Hz)|Delay(ms)|Bandwidth(Hz)|Delay(ms)|Fs(kHz)
+    ------------------------------------------------------------------------- 
+    0                |260          |0        |256          |0.98     |8 
+    1                |184          |2.0      |188          |1.9      |1 
+    2                |94           |3.0      |98           |2.8      |1 
+    3                |44           |4.9      |42           |4.8      |1 
+    4                |21           |8.5      |20           |8.3      |1 
+    5                |10           |13.8     |10           |13.4     |1 
+    6                |5            |19.0     |5            |18.6     |1 
+    */
     writeRegister(MPU6050_RA_GYRO_CONFIG, 0x18);        // scales gyros range to +-2000dps
     writeRegister(MPU6050_RA_ACCEL_CONFIG, 0x00);       // scales accelerometers range to +-2g
 }

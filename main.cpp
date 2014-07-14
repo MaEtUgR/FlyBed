@@ -1,3 +1,9 @@
+/*   X- Configuration           +-Configuration
+        m0   m3                        m1               --           >
+          \ /                          |              /    \       /
+          / \                     m2-------m0        V            |
+        m1   m2                        |                           \
+                                       m3             PITCH      ROLL*/
 #include "mbed.h"
 #include "LED.h"        // LEDs framework for blinking ;)
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
@@ -22,12 +28,14 @@
 #define PITCH           1
 #define YAW             2
 
+#define SQRT2           0.7071067811865
+
 //#define CONSTRAIN(VAL,LIMIT) ((VAL)<(-LIMIT)?(-LIMIT):((VAL)>(LIMIT)?(LIMIT):(VAL)))
 
 bool  armed = false;                    // is for security (when false no motor rotates any more)
 bool  debug = true;                    // shows if we want output for the computer
 bool  RC_present = false;               // shows if an RC is present
-float P_R = 4, I_R = 11, D_R = 0;
+float P_R = 0, I_R = 0, D_R = 0;
 float P_A = 1.865, I_A = 1.765, D_A = 0;
 //float P = 13.16, I = 8, D = 2.73;          // PID values
 float PY = 3.2, IY = 0, DY = 0;
@@ -91,9 +99,9 @@ int main() {
         
         // Setting PID Values from auxiliary RC channels
         if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
-            P_R = 0 + (((float)RC[CHANNEL8].read()) * 5  / 1000);
-        if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
-            I_R = 0 + (((float)RC[CHANNEL7].read()) * 12  / 1000);
+            P_R = 0 + (((float)RC[CHANNEL8].read()) * 3  / 1000);
+        /*if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
+            I_R = 0 + (((float)RC[CHANNEL7].read()) * 12  / 1000);*/
         for(int i=0;i<3;i++)
             Controller_Angle[i].setPID(P_A,I_A,D_A);
         for(int i=0;i<2;i++)
@@ -141,7 +149,10 @@ int main() {
             Controller_Rate[i].compute((RC[i].read()-500.0)*100.0/500.0, IMU.Sensor.data_gyro[i]); // give the controller the actual gyro values and get his advice to correct
         }
         Controller_Rate[2].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-        Controller_Rate[2].compute(-(RC[2].read()-500.0)*100.0/500.0, IMU.Sensor.data_gyro[2]); // give the controller the actual gyro values and get his advice to correct
+        if (RC[THROTTLE].read() > 20)
+            Controller_Rate[2].compute(-(RC[2].read()-500.0)*100.0/500.0, IMU.Sensor.data_gyro[2]); // give the controller the actual gyro values and get his advice to correct
+        else
+            Controller_Rate[2].compute(0, IMU.Sensor.data_gyro[2]); // give the controller the actual gyro values and get his advice to correct
         /*for(int i=0;i<3;i++) {
             Controller_Angle[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
             Controller_Angle[i].compute(RC_angle[i], IMU.angle[i]); // give the controller the actual gyro values and get his advice to correct
@@ -164,10 +175,15 @@ int main() {
             Controller[YAW].compute(RC_angle[YAW], IMU.angle[YAW], IMU.Sensor.data_gyro[YAW]);*/
         
         // Mixing
-        Motor_speed[2] = RC[THROTTLE].read()   + Controller_Rate[PITCH].Value;
-        Motor_speed[0] = RC[THROTTLE].read()   - Controller_Rate[PITCH].Value;
-        Motor_speed[1] = RC[THROTTLE].read()   + Controller_Rate[ROLL].Value;
-        Motor_speed[3] = RC[THROTTLE].read()   - Controller_Rate[ROLL].Value;
+        /*Motor_speed[2] = RC[THROTTLE].read()   + Controller_Rate[PITCH].Value;  // PITCH in direction     + Configuration
+        Motor_speed[0] = RC[THROTTLE].read()   - Controller_Rate[PITCH].Value;  // PITCH against direction
+        Motor_speed[1] = RC[THROTTLE].read()   + Controller_Rate[ROLL].Value;   // ROLL in direction
+        Motor_speed[3] = RC[THROTTLE].read()   - Controller_Rate[ROLL].Value;   // ROLL against direction*/
+        
+        Motor_speed[0] = RC[THROTTLE].read()   +SQRT2*Controller_Rate[PITCH].Value +SQRT2*Controller_Rate[ROLL].Value;  // PITCH in direction       X Configuration
+        Motor_speed[1] = RC[THROTTLE].read()   +SQRT2*Controller_Rate[PITCH].Value -SQRT2*Controller_Rate[ROLL].Value;  // PITCH against direction
+        Motor_speed[2] = RC[THROTTLE].read()   -SQRT2*Controller_Rate[PITCH].Value -SQRT2*Controller_Rate[ROLL].Value;  // ROLL in direction
+        Motor_speed[3] = RC[THROTTLE].read()   -SQRT2*Controller_Rate[PITCH].Value +SQRT2*Controller_Rate[ROLL].Value;  // ROLL against direction
         
         Motor_speed[0] -= Controller_Rate[YAW].Value;
         Motor_speed[2] -= Controller_Rate[YAW].Value;
