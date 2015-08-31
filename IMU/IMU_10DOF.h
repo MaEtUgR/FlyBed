@@ -10,6 +10,7 @@
 #include "BMP085.h"     // Alt (Altitude sensor or Barometer)
 #include "MPU6050.h"    // Combined Gyroscope & Accelerometer
 #include "IMU_Filter.h" // Class to calculate position angles  (algorithm from S.O.H. Madgwick, see header file for info)
+//#include "MPU9250.h"    // Combined Gyroscope & Accelerometer & Magnetometer over SPI
 
 class IMU_10DOF
 {           
@@ -26,7 +27,8 @@ class IMU_10DOF
         float dt;                       // time for entire loop
         float dt_sensors;               // time only to read sensors
         
-        MPU6050     Sensor;             // All sensors Hardwaredrivers
+        //MPU9250     mpu;                // All sensors Hardwaredrivers
+        MPU6050     Sensor;
         L3G4200D    Gyro;
         ADXL345     Acc;
         HMC5883     Comp;

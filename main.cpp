@@ -35,7 +35,7 @@
 bool  armed = false;                    // is for security (when false no motor rotates any more)
 bool  debug = true;                    // shows if we want output for the computer
 bool  RC_present = false;               // shows if an RC is present
-float P_R = 0, I_R = 0, D_R = 0;
+float P_R = 2.5, I_R = 3.7, D_R = 0;
 float P_A = 1.865, I_A = 1.765, D_A = 0;
 //float P = 13.16, I = 8, D = 2.73;          // PID values
 float PY = 3.2, IY = 0, DY = 0;
@@ -98,8 +98,8 @@ int main() {
         }
         
         // Setting PID Values from auxiliary RC channels
-        if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
-            P_R = 0 + (((float)RC[CHANNEL8].read()) * 3  / 1000);
+        //if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
+        //    P_R = 0 + (((float)RC[CHANNEL8].read()) * 3  / 1000);
         /*if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
             I_R = 0 + (((float)RC[CHANNEL7].read()) * 12  / 1000);*/
         for(int i=0;i<3;i++)

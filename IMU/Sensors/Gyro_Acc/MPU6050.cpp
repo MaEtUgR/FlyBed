@@ -28,10 +28,10 @@ void MPU6050::read()
     readraw_acc();
     
     for (int i = 0; i < 3; i++)
-        data_gyro[i] = (raw_gyro[i] - offset_gyro[i])*0.07;             // subtract offset from calibration and multiply unit factor to get degree per second (datasheet s.10)
+        data_gyro[i] = (raw_gyro[i] - offset_gyro[i])*0.07; // subtract offset from calibration and multiply unit factor to get degree per second (datasheet p.10)
     
     for (int i = 0; i < 3; i++)
-        data_acc[i] = raw_acc[i] - offset_acc[i];             // TODO: didn't care about units because IMU-algorithm just uses vector direction
+        data_acc[i] = raw_acc[i] - offset_acc[i];           // TODO: didn't care about units because IMU-algorithm just uses vector direction
 
     // I have to swich coordinates on my board to match the ones of the other sensors (clear this part if you use the raw coordinates of the sensor)
     float tmp = 0;
