@@ -17,7 +17,7 @@ MPU9250::MPU9250(PinName MOSI, PinName MISO, PinName SCLK, PinName CS) : spi(MOS
     5             |10           |13.8     |10           |13.4     |1 
     6             |5            |19.0     |5            |18.6     |1 
     */
-    writeRegister8(MPU9250_CONFIG, 0x06);
+    writeRegister8(MPU9250_CONFIG, 0x03);
     writeRegister8(MPU9250_GYRO_CONFIG, 0x18);              // scales gyros range to +-2000dps
     writeRegister8(MPU9250_ACCEL_CONFIG, 0x08);             // scales accelerometers range to +-4g
 }
@@ -39,6 +39,13 @@ void MPU9250::readGyro() {
     
     for (int i = 0; i < 3; i++)
         Gyro[i] = (rawGyro[i] - offsetGyro[i])*0.07;        // subtract offset from calibration and multiply unit factor to get degree per second (datasheet p.10)
+        
+
+
+    float tmp = Gyro[0];
+    Gyro[0] = -Gyro[1];
+    Gyro[1] = -tmp;
+    Gyro[2] = -Gyro[2];
 }
 
 void MPU9250::readAcc() {
@@ -49,6 +56,13 @@ void MPU9250::readAcc() {
     
     for (int i = 0; i < 3; i++)
         Acc[i] = (rawAcc[i] - offsetAcc[i])/8192.0;                // TODO: didn't care about units because IMU-algorithm just uses vector direction
+        
+        
+        
+    float tmp = Acc[0];
+    Acc[0] = -Acc[1];
+    Acc[1] = -tmp;
+    Acc[2] = -Acc[2];
 }
 
 // PRIVATE Methods ------------------------------------------------------------------------------------

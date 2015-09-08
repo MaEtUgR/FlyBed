@@ -4,20 +4,14 @@
 #define IMU_10DOF_H
 
 #include "mbed.h"
-#include "L3G4200D.h"   // Gyro (Gyroscope)
-#include "ADXL345.h"    // Acc (Accelerometer)
-#include "HMC5883.h"    // Comp (Compass)
-#include "BMP085.h"     // Alt (Altitude sensor or Barometer)
-#include "MPU6050.h"    // Combined Gyroscope & Accelerometer
+#include "MPU9250.h"    // Combined Gyroscope & Accelerometer & Magnetometer over SPI
 #include "IMU_Filter.h" // Class to calculate position angles  (algorithm from S.O.H. Madgwick, see header file for info)
-//#include "MPU9250.h"    // Combined Gyroscope & Accelerometer & Magnetometer over SPI
 
 class IMU_10DOF
 {           
     public:
-        IMU_10DOF(PinName sda, PinName scl);
-        void readAngles();              // read all axis from register to array data
-        void readAltitude();            // read all axis from register to array data
+        IMU_10DOF(PinName MOSI, PinName MISO, PinName SCLK, PinName CS);
+        void readAngles();              // read all sensors and calculate angles
         
         float * angle;                  // where the measured and calculated data is saved
         float temperature;
@@ -27,12 +21,7 @@ class IMU_10DOF
         float dt;                       // time for entire loop
         float dt_sensors;               // time only to read sensors
         
-        //MPU9250     mpu;                // All sensors Hardwaredrivers
-        MPU6050     Sensor;
-        L3G4200D    Gyro;
-        ADXL345     Acc;
-        HMC5883     Comp;
-        BMP085      Alt;
+        MPU9250     mpu;                // The sensor Hardware Driver
             
     private:                            
         Timer LocalTimer;               // local time to calculate processing speed for entire loop and just reading sensors
