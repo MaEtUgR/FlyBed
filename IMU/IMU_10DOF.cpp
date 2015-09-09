@@ -15,8 +15,8 @@ IMU_10DOF::IMU_10DOF(PinName MOSI, PinName MISO, PinName SCLK, PinName CS) : mpu
 void IMU_10DOF::readAngles()
 {
     time_for_dt_sensors = LocalTimer.read(); // start time for measuring sensors
-    //mpu.readGyro(); // reading sensor data
-    //mpu.readAcc();
+    mpu.readGyro(); // reading sensor data
+    mpu.readAcc();
     dt_sensors = LocalTimer.read() - time_for_dt_sensors; // stop time for measuring sensors
 
     // meassure dt since last measurement for the filter

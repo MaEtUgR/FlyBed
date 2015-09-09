@@ -51,7 +51,7 @@ void RC_Channel::saveCalibrationValue(float * value, char * fileextension)
     sprintf(path, "/local/FlyBed/RC_%d_%s", index, fileextension);
     FILE *fp = fopen(path, "w");
     if (fp != NULL) {
-        fprintf(fp, "%f", value);
+        fprintf(fp, "%f", *value);
         fclose(fp);
     } else
         value = 0;

@@ -8,7 +8,7 @@
 class PID {
     public:
         PID(float P, float I, float D, float Integral_Max);
-        float compute(float SetPoint, float ProcessValue);
+        void compute(float SetPoint, float ProcessValue);
         void setIntegrate(bool Integrate);
         void setPID(float P, float I, float D);
         

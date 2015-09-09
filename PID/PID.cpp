@@ -13,7 +13,7 @@ PID::PID(float P, float I, float D, float Integral_Max)
     dtTimer.start();
 }
 
-float PID::compute(float SetPoint, float ProcessValue)
+void PID::compute(float SetPoint, float ProcessValue)
 {
     // meassure dt
     float dt = dtTimer.read() - LastTime;    // time in us since last loop
