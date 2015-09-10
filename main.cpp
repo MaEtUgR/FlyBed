@@ -1,9 +1,9 @@
 /*   X- Configuration
-        m3   m0                          --           >
-          \ /                          /    \       /
-          / \                         V            |
-        m2   m1                                     \
-                                       PITCH      ROLL*/
+        m2   m3                      --           >
+          \ /                      /    \       /
+          / \                            V     |
+        m1   m0                                 \
+                                    ROLL       PITCH */
 #include "mbed.h"
 #include "LED.h"        // LEDs framework for blinking ;)
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
@@ -30,23 +30,15 @@
 
 #define SQRT2           0.7071067811865
 
-//#define CONSTRAIN(VAL,LIMIT) ((VAL)<(-LIMIT)?(-LIMIT):((VAL)>(LIMIT)?(LIMIT):(VAL)))
-
 bool  armed = false;                    // is for security (when false no motor rotates any more)
-bool  debug = true;                    // shows if we want output for the computer
+bool  debug = true;                     // shows if we want output for the computer
 bool  RC_present = false;               // shows if an RC is present
-//float P_R = 2.5, I_R = 3.7, D_R = 0;
-float P_R = 6, I_R = 0, D_R = 0;
-float P_A = 1.865, I_A = 1.765, D_A = 0;
-//float P = 13.16, I = 8, D = 2.73;          // PID values
-float PY = 3.2, IY = 0, DY = 0;
-//float PY = 5.37, IY = 0, DY = 3;           // PID values for Yaw
+float P_R = 6, I_R = 0, D_R = 0;        // PID values for the rate controller
+float P_A = 1.865, I_A = 1.765, D_A = 0;// PID values for the angle controller
+float PY = 3.2, IY = 0, DY = 0;         // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
-//float * command_pointer = &D;           // TODO: pointer to varible that's going to be changed by UART command
 
-/*float max[3] = {-10000,-10000,-10000};
-float min[3] = {10000,10000,10000};*/
 LED         LEDs;
 PC          pc(USBTX, USBRX, 115200);   // USB
 //PC          pc(p9, p10, 115200);       // Bluetooth
@@ -64,10 +56,16 @@ void executer() {
         mbed_reset();
     if (command == '-')
         debug = !debug;
+        
     if (command == 'w')
         P_R += 0.1;
     if (command == 's')
         P_R -= 0.1;
+        
+    if (command == 'q')
+        armed = true;
+    if (command == 'a')
+        armed = false;
         
     pc.putc(command);
     LEDs.tilt(2);
@@ -90,10 +88,6 @@ int main() {
         }
         
         // Setting PID Values from auxiliary RC channels
-        //if (RC[CHANNEL8].read() > 0 && RC[CHANNEL8].read() < 1000)
-        //    P_R = 0 + (((float)RC[CHANNEL8].read()) * 3  / 1000);
-        /*if (RC[CHANNEL7].read() > 0 && RC[CHANNEL7].read() < 1000)
-            I_R = 0 + (((float)RC[CHANNEL7].read()) * 12  / 1000);*/
         for(int i=0;i<3;i++)
             Controller_Angle[i].setPID(P_A,I_A,D_A);
         for(int i=0;i<2;i++)
@@ -163,12 +157,12 @@ int main() {
         if (debug) {
             pc.printf("$STATE,%d,%.3f\r\n", armed, IMU.dt);
             //pc.printf("$RC,%d,%d,%d,%d,%d,%d,%d\r\n", RC[AILERON].read(), RC[ELEVATOR].read(), RC[RUDDER].read(), RC[THROTTLE].read(), RC[CHANNEL6].read(), RC[CHANNEL7].read(), RC[CHANNEL8].read());
-            //pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
+            pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
             //pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.mpu.Acc[ROLL], IMU.mpu.Acc[PITCH], IMU.mpu.Acc[YAW]);
             //pc.printf("$ANG,%.3f,%.3f,%.3f\r\n", IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW]);
             //pc.printf("$RCANG,%.3f,%.3f,%.3f\r\n", RC_angle[ROLL], RC_angle[PITCH], RC_angle[YAW]);
             pc.printf("$CONT,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Rate[ROLL].Value, Controller_Rate[PITCH].Value, Controller_Rate[YAW].Value, P_R, I_R, D_R);
-            //pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
+            pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
 
             wait(0.04);
         }
