@@ -34,9 +34,9 @@ bool  armed = false;                    // is for security (when false no motor 
 bool  debug = true;                     // shows if we want output for the computer
 bool  level = false;                     // switches between self leveling and acro mode
 bool  RC_present = false;               // shows if an RC is present
-float P_R = 3.1, I_R = 0, D_R = 0;      // PID values for the rate controller
-float P_A = 3, I_A = 0, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
-float PY = 1.5, IY = 0, DY = 0;         // PID values for Yaw
+float P_R = 3.3, I_R = 0, D_R = 0;      // PID values for the rate controller
+float P_A = 2.6, I_A = 0, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
+float PY = 2.3, IY = 0, DY = 0;         // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
 
@@ -82,6 +82,11 @@ void executer() {
         PY += 0.1;
     if (command == 'f')
         PY -= 0.1;
+        
+    if (command == 't')
+        I_A += 0.1;
+    if (command == 'g')
+        I_A -= 0.1;
         
     pc.putc(command);
     LEDs.tilt(2);
@@ -149,12 +154,14 @@ int main() {
             Controller_Rate[2].compute(-(RC[2].read()-500.0)*100.0/500.0, IMU.mpu.Gyro[2]); // give the controller the actual gyro values and get his advice to correct
         else
             Controller_Rate[2].compute(0, IMU.mpu.Gyro[2]); // give the controller the actual gyro values and get his advice to correct
-
+        
+        float throttle = 100 + (RC[THROTTLE].read() * 500 / 1000);
+        
         // Mixing
-        Motor_speed[0] = RC[THROTTLE].read()   +SQRT2*Controller_Rate[ROLL].Value  -SQRT2*Controller_Rate[PITCH].Value;  // X Configuration
-        Motor_speed[1] = RC[THROTTLE].read()   -SQRT2*Controller_Rate[ROLL].Value  -SQRT2*Controller_Rate[PITCH].Value;  // 
-        Motor_speed[2] = RC[THROTTLE].read()   -SQRT2*Controller_Rate[ROLL].Value  +SQRT2*Controller_Rate[PITCH].Value;  // 
-        Motor_speed[3] = RC[THROTTLE].read()   +SQRT2*Controller_Rate[ROLL].Value  +SQRT2*Controller_Rate[PITCH].Value;  // 
+        Motor_speed[0] = throttle   +SQRT2*Controller_Rate[ROLL].Value  -SQRT2*Controller_Rate[PITCH].Value;  // X Configuration
+        Motor_speed[1] = throttle   -SQRT2*Controller_Rate[ROLL].Value  -SQRT2*Controller_Rate[PITCH].Value;  // 
+        Motor_speed[2] = throttle   -SQRT2*Controller_Rate[ROLL].Value  +SQRT2*Controller_Rate[PITCH].Value;  // 
+        Motor_speed[3] = throttle   +SQRT2*Controller_Rate[ROLL].Value  +SQRT2*Controller_Rate[PITCH].Value;  // 
         
         Motor_speed[0] -= Controller_Rate[YAW].Value;
         Motor_speed[2] -= Controller_Rate[YAW].Value;
@@ -185,12 +192,12 @@ int main() {
             //pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
             //pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.mpu.Acc[ROLL], IMU.mpu.Acc[PITCH], IMU.mpu.Acc[YAW]);
             pc.printf("$ANG,%.3f,%.3f,%.3f\r\n", IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW]);
-            pc.printf("$RCANG,%.3f,%.3f,%.3f\r\n", RC_angle[ROLL], RC_angle[PITCH], RC_angle[YAW]);
+            //pc.printf("$RCANG,%.3f,%.3f,%.3f\r\n", RC_angle[ROLL], RC_angle[PITCH], RC_angle[YAW]);
             pc.printf("$CONTR,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Rate[ROLL].Value, Controller_Rate[PITCH].Value, Controller_Rate[YAW].Value, P_R, I_R, D_R, PY);
             pc.printf("$CONTA,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Angle[ROLL].Value, Controller_Angle[PITCH].Value, Controller_Angle[YAW].Value, P_A, I_A, D_A);
             pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
-            pc.printf("\r\n");
-            wait(0.3);
+            //pc.printf("\r\n");
+            wait(0.04);
         }
 
         LEDs.rollnext();

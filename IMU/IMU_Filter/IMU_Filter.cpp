@@ -2,8 +2,8 @@
 
 // IMU/AHRS
 #define PI 3.1415926535897932384626433832795
-#define Kp 2.0f         // proportional gain governs rate of convergence to accelerometer/magnetometer
-#define Ki 0.005f       // integral gain governs rate of convergence of gyroscope biases
+#define Kp 0.5f         // proportional gain governs rate of convergence to accelerometer/magnetometer
+#define Ki 0.0f//0.005f       // integral gain governs rate of convergence of gyroscope biases
 
 IMU_Filter::IMU_Filter()
 {
@@ -24,8 +24,6 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
         }
     #endif
     
-    angle[2] += Gyro_data[2] *dt; // ATTENTION YAW IS GYRO ONLY
-    
     #if 1 // IMU/AHRS (from http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/)   
         float radGyro[3]; // Gyro in radians per second
         for(int i=0; i<3; i++)
@@ -35,8 +33,9 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
         //AHRSupdate(dt/2, radGyro[0], radGyro[1], radGyro[2], Acc_data[0], Acc_data[1], Acc_data[2], Comp_data[0], Comp_data[1], Comp_data[2]);
         
         float rangle[3]; // calculate angles in radians from quternion output, formula from Wiki (http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
+        
         rangle[0] = atan2(2*q0*q1 + 2*q2*q3, 1 - 2*(q1*q1 + q2*q2));
-        rangle[1] = asin(2*q0*q2 - 2*q3*q1);
+        rangle[1] = asin (2*q0*q2 - 2*q3*q1);
         rangle[2] = atan2(2*q0*q3 + 2*q1*q2, 1 - 2*(q2*q2 + q3*q3));
         
         // TODO
@@ -57,6 +56,8 @@ void IMU_Filter::compute(float dt, const float * Gyro_data, const float * Acc_da
         for(int i=0; i<2; i++)  // angle in degree
             angle[i] = rangle[i] * 180 / PI;
     #endif
+    
+    angle[2] += Gyro_data[2] *dt; // ATTENTION YAW IS GYRO ONLY
 }
 
 //------------------------------------------------------------------------------------------------------------------
@@ -72,9 +73,9 @@ void IMU_Filter::IMUupdate(float halfT, float gx, float gy, float gz, float ax, 
     // normalise the measurements
     norm = sqrt(ax*ax + ay*ay + az*az);
     if(norm == 0.0f) return;   
-    ax = ax / norm;
-    ay = ay / norm;
-    az = az / norm;      
+    ax /= norm;
+    ay /= norm;
+    az /= norm;      
     
     // estimated direction of gravity
     vx = 2*(q1*q3 - q0*q2);
@@ -87,20 +88,24 @@ void IMU_Filter::IMUupdate(float halfT, float gx, float gy, float gz, float ax, 
     ez = (ax*vy - ay*vx);
     
     // integral error scaled integral gain
-    exInt = exInt + ex*Ki;
-    eyInt = eyInt + ey*Ki;
-    ezInt = ezInt + ez*Ki;
+    exInt += ex*Ki;
+    eyInt += ey*Ki;
+    ezInt += ez*Ki;
     
     // adjusted gyroscope measurements
-    gx = gx + Kp*ex + exInt;
-    gy = gy + Kp*ey + eyInt;
-    gz = gz + Kp*ez + ezInt;
+    gx += Kp*ex + exInt;
+    gy += Kp*ey + eyInt;
+    gz += Kp*ez + ezInt;
     
     // integrate quaternion rate and normalise
-    q0 = q0 + (-q1*gx - q2*gy - q3*gz)*halfT;
-    q1 = q1 + (q0*gx + q2*gz - q3*gy)*halfT;
-    q2 = q2 + (q0*gy - q1*gz + q3*gx)*halfT;
-    q3 = q3 + (q0*gz + q1*gy - q2*gx)*halfT;  
+    float q0o = q0; // he did the MATLAB to C error by not thinking of the beginning vector elements already being changed for the calculation of the rest!
+    float q1o = q1;
+    float q2o = q2;
+    float q3o = q3;
+    q0 += (-q1o*gx - q2o*gy - q3o*gz)*halfT;
+    q1 += (q0o*gx + q2o*gz - q3o*gy)*halfT;
+    q2 += (q0o*gy - q1o*gz + q3o*gx)*halfT;
+    q3 += (q0o*gz + q1o*gy - q2o*gx)*halfT;  
     
     // normalise quaternion
     norm = sqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);

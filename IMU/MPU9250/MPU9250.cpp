@@ -38,7 +38,7 @@ void MPU9250::readGyro() {
     int16_t offsetGyro[3] = {-31, -15, -11};                // TODO: make better calibration
     
     for (int i = 0; i < 3; i++)
-        Gyro[i] = (rawGyro[i] - offsetGyro[i])*0.07;        // subtract offset from calibration and multiply unit factor to get degree per second (datasheet p.10)
+        Gyro[i] = (rawGyro[i] - offsetGyro[i]) * 0.07 * 0.87;        // subtract offset from calibration and multiply unit factor to get degree per second (datasheet p.10)
         
 
 
