@@ -6,6 +6,7 @@ PID::PID(float P, float I, float D, float Integral_Max)
     Integral = 0;
     LastTime = 0;
     Integrate = true;
+    RollBufferIndex = 0;
     PID::P = P;
     PID::I = I;
     PID::D = D;
@@ -29,7 +30,11 @@ void PID::compute(float SetPoint, float ProcessValue)
         Integral += Error * dt;
         
     // Derivative
-    float Derivative = (Error - PreviousError) / dt;
+    RollBuffer[RollBufferIndex] = (Error - PreviousError) / dt;
+    float Derivative = 0;
+    for(int i=0; i<BUFFERSIZE ;i++)
+        Derivative += RollBuffer[i];
+    Derivative /= BUFFERSIZE;
     PreviousError = Error;
     
     // Final Formula

@@ -5,6 +5,8 @@
 
 #include "mbed.h"
 
+#define BUFFERSIZE 5
+
 class PID {
     public:
         PID(float P, float I, float D, float Integral_Max);
@@ -25,6 +27,8 @@ class PID {
         bool Integrate; // if the integral is used / the controller is in use
         
         float PreviousError; // the Error of the last computation to get derivative
+        float RollBuffer[BUFFERSIZE];  // Rollingbufferarray for derivative to filter noise
+        int RollBufferIndex;
 };
 
 #endif

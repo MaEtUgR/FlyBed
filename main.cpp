@@ -15,7 +15,7 @@
 
 #define PPM_FREQU       495     // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
 #define INTEGRAL_MAX    300     // maximal output offset that can result from integrating errors
-#define RC_SENSITIVITY  30      // maximal angle from horizontal that the PID is aming for
+#define RC_SENSITIVITY  15      // maximal angle from horizontal that the PID is aming for
 #define YAWSPEED        1.0     // maximal speed of yaw rotation in degree per Rate
 #define AILERON         0       // RC
 #define ELEVATOR        1
@@ -34,8 +34,8 @@ bool  armed = false;                    // is for security (when false no motor 
 bool  debug = true;                     // shows if we want output for the computer
 bool  level = false;                     // switches between self leveling and acro mode
 bool  RC_present = false;               // shows if an RC is present
-float P_R = 3.3, I_R = 0, D_R = 0;      // PID values for the rate controller
-float P_A = 2.6, I_A = 0, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
+float P_R = 3.3, I_R = 1.1, D_R = 0;      // PID values for the rate controller
+float P_A = 2.2, I_A = 0, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
 float PY = 2.3, IY = 0, DY = 0;         // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
@@ -74,19 +74,24 @@ void executer() {
         P_R -= 0.1;
         
     if (command == 'e')
-        P_A += 0.1;
+        I_R += 0.1;
     if (command == 'd')
-        P_A -= 0.1;
+        I_R -= 0.1;
         
     if (command == 'r')
-        PY += 0.1;
+        P_A += 0.1;
     if (command == 'f')
-        PY -= 0.1;
+        P_A -= 0.1;
         
     if (command == 't')
         I_A += 0.1;
     if (command == 'g')
         I_A -= 0.1;
+        
+    if (command == 'z')
+        PY += 0.1;
+    if (command == 'h')
+        PY -= 0.1;
         
     pc.putc(command);
     LEDs.tilt(2);
@@ -178,7 +183,7 @@ int main() {
                 //ESC[1] = (int)Motor_speed[1]>50 ? (int)Motor_speed[1] : 50;
                 //ESC[3] = (int)Motor_speed[3]>50 ? (int)Motor_speed[3] : 50;
                 for(int i=0;i<4;i++)   // Set new motorspeeds
-                    ESC[i] = (int)Motor_speed[i]>50 ? (int)Motor_speed[i] : 50;
+                    ESC[i] = (int)Motor_speed[i]>100 ? (int)Motor_speed[i] : 100;
                 
         } else {
             for(int i=0;i<4;i++) // for security reason, set every motor to zero speed
