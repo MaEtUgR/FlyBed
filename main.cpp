@@ -34,8 +34,8 @@ bool  armed = false;                    // is for security (when false no motor 
 bool  debug = true;                     // shows if we want output for the computer
 bool  level = false;                     // switches between self leveling and acro mode
 bool  RC_present = false;               // shows if an RC is present
-float P_R = 3.3, I_R = 1.1, D_R = 0;      // PID values for the rate controller
-float P_A = 2.2, I_A = 0, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
+float P_R = 2.5, I_R = 0.3, D_R = 0;      // PID values for the rate controller
+float P_A = 2.1, I_A = 0.3, D_A = 0;        // PID values for the angle controller      P_A = 1.865, I_A = 1.765, D_A = 0
 float PY = 2.3, IY = 0, DY = 0;         // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
