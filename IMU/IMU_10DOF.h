@@ -24,9 +24,8 @@ class IMU_10DOF
         MPU9250     mpu;                // The sensor Hardware Driver
             
     private:                            
-        Timer LocalTimer;               // local time to calculate processing speed for entire loop and just reading sensors
-        float time_for_dt;              // |
-        float time_for_dt_sensors;      // |
+        Timer LoopTimer;               // local time to calculate processing speed for entire loop
+        Timer SensorTimer;             // local time to calculate processing speed for just reading sensors
         
         IMU_Filter  Filter;             // Filterclass to join sensor data
 };
