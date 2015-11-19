@@ -17,7 +17,7 @@ MPU9250::MPU9250(PinName MOSI, PinName MISO, PinName SCLK, PinName CS) : spi(MOS
     5             |10           |13.8     |10           |13.4     |1 
     6             |5            |19.0     |5            |18.6     |1 
     */
-    writeRegister8(MPU9250_CONFIG, 0x03);
+    writeRegister8(MPU9250_CONFIG, 0x00);
     writeRegister8(MPU9250_GYRO_CONFIG, 0x18);              // scales gyros range to +-2000dps
     writeRegister8(MPU9250_ACCEL_CONFIG, 0x08);             // scales accelerometers range to +-4g
 }
@@ -35,7 +35,7 @@ void MPU9250::readGyro() {
     int16_t rawGyro[3];
     readRegister48(MPU9250_GYRO_XOUT_H, rawGyro);
     
-    int16_t offsetGyro[3] = {-31, -15, -11};                // TODO: make better calibration
+    int16_t offsetGyro[3] = {-31, -16, -12};                // TODO: make better calibration
     
     for (int i = 0; i < 3; i++)
         Gyro[i] = (rawGyro[i] - offsetGyro[i]) * 0.07 * 0.87;        // subtract offset from calibration and multiply unit factor to get degree per second (datasheet p.10)

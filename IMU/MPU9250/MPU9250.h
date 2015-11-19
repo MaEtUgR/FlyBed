@@ -18,7 +18,7 @@ class MPU9250 {
         void readAcc();                                                         // read measurement data from accelerometer
         float Acc[3];                                                           // where accelerometer measurement data is stored
         
-    private:
+    //private:
         
         // SPI Inteface
         SPI spi;                                                                // SPI Bus

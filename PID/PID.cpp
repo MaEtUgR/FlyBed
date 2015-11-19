@@ -31,6 +31,9 @@ void PID::compute(float SetPoint, float ProcessValue)
         
     // Derivative
     RollBuffer[RollBufferIndex] = (Error - PreviousError) / dt;
+    RollBufferIndex++;
+    if (RollBufferIndex == BUFFERSIZE)
+        RollBufferIndex = 0;
     float Derivative = 0;
     for(int i=0; i<BUFFERSIZE ;i++)
         Derivative += RollBuffer[i];
