@@ -6,7 +6,7 @@
 
 // Defines
 #define PPM_FREQU       495                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
-#define RC_SENSITIVITY  0.3                                 // Hz Frequency of PPM Signal for ESCs (maximum <500Hz)
+#define RC_SENSITIVITY  0.3
 #define YAW_SENSITIVITY 0.4
 // RC
 #define AILERON         0
