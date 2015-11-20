@@ -1,0 +1,14 @@
+# Binary files
+*.o
+*.hex
+*.elf
+*.bin
+
+# Make and linker files
+*.d
+*.map
+
+# Eclipse project files
+.cproject
+.project
+.settings
