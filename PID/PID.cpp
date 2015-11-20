@@ -26,7 +26,7 @@ void PID::compute(float SetPoint, float ProcessValue)
     // Integral
     if (dt > 2 || !Integrate) // Todo: 2 secs is the maximal time between two computations
         Integral = 0;
-    else if (abs(Integral + Error) <= Integral_Max)
+    else if (fabs(Integral + Error) <= Integral_Max)
         Integral += Error * dt;
         
     // Derivative
