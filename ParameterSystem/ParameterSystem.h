@@ -10,19 +10,23 @@
 
 #include "mbed.h"
 #include <vector>
+#include <string>
 
 class ParameterSystem {
 public:
-	ParameterSystem();
+	ParameterSystem(string filename);
 	virtual ~ParameterSystem();
 
-	void writeParametersToFile();
-	void readParametersFromFile();
+	void writeBinaryFile();
+	void readBinaryFile();
+	void writeASCIIFile();
+	void readASCIIFile();
 	inline float getParameter(int i) {return _parameters[i];}
 	inline float operator[](int i) {return getParameter(i);}
-	void setParameter(int i, float v) {_parameters[i] = v;}
+	inline void setParameter(int i, float v) {_parameters[i] = v;}
 protected:
-	LocalFileSystem local;
+	LocalFileSystem _localFileSystem;
+	string _filename;
 	vector<float> _parameters;
 };
 

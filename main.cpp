@@ -16,7 +16,8 @@
 #include "ParameterSystem.h"
 
 PC          pc(USBTX, USBRX, 115200);   // USB
-ParameterSystem params;
+
+ParameterSystem params("param");
 
 extern "C" void mbed_reset();
 
@@ -32,37 +33,13 @@ void wait_for_reset() {
 int main() {
 	pc.printf("\r\nup and running!\r\n");
 	//params.writeParametersToFile();
-	params.readParametersFromFile();
-
+	params.readBinaryFile();
 	params.setParameter(1, 5.555);
+	params.writeASCIIFile();
+	params.readASCIIFile();
 
 	for(int i = 0; i < 3; i++)
 		printf("%f\r\n", params[i]);
 
 	wait_for_reset();
-
-
-	// old test
-
-	LocalFileSystem local("local");
-
-	pc.cls();
-
-    Timer FileTimer;
-    char mytext[100] = "Hello!\n";
-    int testint = -1;
-
-    FILE *fp = fopen("/local/out.txt", "w");
-    pc.printf("%d",fp);
-    wait(1);
-    FileTimer.start();
-    fwrite(mytext, 1, 7, fp);	// writing bytes
-    fprintf(fp, "Hello!\r\n");		// writing a formated string
-    fwrite(&testint, sizeof(testint), 1, fp);
-    int time = FileTimer.read_us();
-    fclose(fp);
-
-    pc.printf("writing the file took: %dus", time);
-
-
 }
