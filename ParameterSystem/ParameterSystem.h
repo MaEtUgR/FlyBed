@@ -24,6 +24,7 @@ public:
 	inline float getParameter(int i) {return _parameters[i];}
 	inline float operator[](int i) {return getParameter(i);}
 	inline void setParameter(int i, float v) {_parameters[i] = v;}
+	inline int size() {return _parameters.size();}
 protected:
 	LocalFileSystem _localFileSystem;
 	string _filename;

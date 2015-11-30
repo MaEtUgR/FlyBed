@@ -31,6 +31,7 @@ void ParameterSystem::readBinaryFile() {
 	FILE *fp = fopen(("/local/" + _filename).c_str(), "r");
 	if(!fp)
 		return;
+	_parameters.clear();
 	float input;
 	while(fread(&input, sizeof(input), 1, fp))
 		_parameters.push_back(input);
@@ -50,6 +51,7 @@ void ParameterSystem::readASCIIFile() {
 	FILE *fp = fopen(("/local/" + _filename + ".txt").c_str(), "r");
 	if(!fp)
 		return;
+	_parameters.clear();
 	float input;
 	while(fscanf(fp, "%f", &input) > 0)
 		_parameters.push_back(input);

@@ -38,7 +38,7 @@ int main() {
 	params.writeASCIIFile();
 	params.readASCIIFile();
 
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < params.size(); i++)
 		printf("%f\r\n", params[i]);
 
 	wait_for_reset();
