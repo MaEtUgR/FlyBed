@@ -15,7 +15,7 @@
 class ParameterSystem {
 public:
 	ParameterSystem(string filename);
-	virtual ~ParameterSystem();
+	virtual ~ParameterSystem(){}
 
 	void writeBinaryFile();
 	void readBinaryFile();

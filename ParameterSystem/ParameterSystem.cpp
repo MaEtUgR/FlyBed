@@ -10,12 +10,6 @@
 ParameterSystem::ParameterSystem(string filename) :
 	_localFileSystem("local"),
 	_filename(filename) {
-	// TODO Auto-generated constructor stub
-
-}
-
-ParameterSystem::~ParameterSystem() {
-	// TODO Auto-generated destructor stub
 }
 
 void ParameterSystem::writeBinaryFile() {
