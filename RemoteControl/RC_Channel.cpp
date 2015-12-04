@@ -1,4 +1,5 @@
-#include "RC_Channel.h"
+#include "../RemoteControl/RC_Channel.h"
+
 #include "mbed.h"
 
 RC_Channel::RC_Channel(PinName mypin, int index) : myinterrupt(mypin)

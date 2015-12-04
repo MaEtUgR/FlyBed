@@ -9,7 +9,7 @@ class RC_Channel
         RC_Channel(PinName mypin, int index); // NO p19/p20!!!!, they don't support InterruptIn
         int read(); // read the last measured data
        
-    private:
+    //private:
         int index; // to know which channel of the RC an instance has (only for calibrations savings)
         int time; // last measurement data
         float scale; // calibration values

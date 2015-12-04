@@ -9,6 +9,7 @@
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
 
 #include "IMU_10DOF.h"  // Complete IMU class for 10DOF-Board (L3G4200D, ADXL345, HMC5883, BMP085)
+#include "RemoteControl.h"
 #include "RC_Channel.h" // RemoteControl Channels with PPM
 #include "PID.h"        // PID Library (slim, self written)
 #include "Servo.h"      // Motor PPM using any DigitalOut Pin
@@ -47,10 +48,11 @@ int counter = 0;
 int divider = 20;
 
 LED         LEDs;
-//PC          pc(USBTX, USBRX, 115200);   // USB
-PC          pc(p9, p10, 115200);       // Bluetooth PIN: 1234
+PC          pc(USBTX, USBRX, 115200);   // USB
+//PC          pc(p9, p10, 115200);       // Bluetooth PIN: 1234
 IMU_10DOF   IMU(p5, p6, p7, p19, p28, p27);
-RC_Channel  RC[] = {RC_Channel(p8,1), RC_Channel(p15,2), RC_Channel(p17,4), RC_Channel(p16,3), RC_Channel(p25,2), RC_Channel(p26,4), RC_Channel(p29,3)}; // no p19/p20 !
+RemoteControl RC;
+RC_Channel  RCC[] = {RC_Channel(p8,1), RC_Channel(p15,2), RC_Channel(p17,4), RC_Channel(p16,3), RC_Channel(p25,2), RC_Channel(p26,4), RC_Channel(p29,3)}; // no p19/p20 !
 PID         Controller_Rate[] = {PID(P_R, I_R, D_R, INTEGRAL_MAX), PID(P_R, I_R, D_R, INTEGRAL_MAX), PID(PY, IY, DY, INTEGRAL_MAX)}; // 0:X:Roll 1:Y:Pitch 2:Z:Yaw
 PID         Controller_Angle[] = {PID(P_A, I_A, D_A, INTEGRAL_MAX), PID(P_A, I_A, D_A, INTEGRAL_MAX), PID(0, 0, 0, INTEGRAL_MAX)};
 Servo       ESC[] = {Servo(p21,PPM_FREQU), Servo(p22,PPM_FREQU), Servo(p23,PPM_FREQU), Servo(p24,PPM_FREQU)};   // use any DigitalOit Pin
@@ -65,12 +67,12 @@ void loop() {
     Times[1] = LoopTimer.read(); // 197us
     
     // Arming / disarming
-    RC_present = !(RC[AILERON].read() == -100 || RC[ELEVATOR].read() == -100 || RC[RUDDER].read() == -100 || RC[THROTTLE].read() == -100); // TODO: Failsafe
-    if(RC[THROTTLE].read() < 20 && RC[RUDDER].read() > 850) {
+    RC_present = !(RCC[AILERON].read() == -100 || RCC[ELEVATOR].read() == -100 || RCC[RUDDER].read() == -100 || RCC[THROTTLE].read() == -100); // TODO: Failsafe
+    if(RCC[THROTTLE].read() < 20 && RCC[RUDDER].read() > 850) {
         armed = true;
         RC_angle[YAW] = IMU.angle[YAW];
     }
-    if((RC[THROTTLE].read() < 30 && RC[RUDDER].read() < 30) || !RC_present) {
+    if((RCC[THROTTLE].read() < 30 && RCC[RUDDER].read() < 30) || !RC_present) {
         armed = false;
     }
     
@@ -85,15 +87,15 @@ void loop() {
     // RC Angle ROLL-PITCH-Part
     for(int i=0;i<2;i++) {    // calculate new angle we want the QC to have
         if (RC_present)
-            RC_angle[i] = (RC[i].read()-500)*RC_SENSITIVITY/500.0;
+            RC_angle[i] = (RCC[i].read()-500)*RC_SENSITIVITY/500.0;
         else
             RC_angle[i] = 0;
     }
 
     // RC Angle YAW-Part
     float   RC_yaw_adding;                  // temporary variable to take the desired yaw adjustment
-    if (RC_present && RC[THROTTLE].read() > 20)
-        RC_yaw_adding = -(RC[RUDDER].read()-500)*YAWSPEED/500;  // the yaw angle is integrated from stick input
+    if (RC_present && RCC[THROTTLE].read() > 20)
+        RC_yaw_adding = -(RCC[RUDDER].read()-500)*YAWSPEED/500;  // the yaw angle is integrated from stick input
     else
         RC_yaw_adding = 0;
     
@@ -114,18 +116,18 @@ void loop() {
     } else {
         for(int i=0;i<2;i++) { // ACRO
             Controller_Rate[i].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-            Controller_Rate[i].compute((RC[i].read()-500.0)*100.0/500.0, /*IMU.mpu2.data_gyro[i]*/IMU.mpu.Gyro[i]); // give the controller the actual gyro values and get his advice to correct
+            Controller_Rate[i].compute((RCC[i].read()-500.0)*100.0/500.0, /*IMU.mpu2.data_gyro[i]*/IMU.mpu.Gyro[i]); // give the controller the actual gyro values and get his advice to correct
             //Controller_Rate[i].compute((RC[i].read()-500.0)*100.0/500.0, (IMU.mpu2.data_gyro[i] + IMU.mpu.Gyro[i])/2 );
         }
     }
     
     Controller_Rate[2].setIntegrate(armed); // only integrate in controller when armed, so the value is not totally odd from not flying
-    if (RC[THROTTLE].read() > 20)
-        Controller_Rate[2].compute(-(RC[2].read()-500.0)*100.0/500.0, IMU.mpu.Gyro[2]); // give the controller the actual gyro values and get his advice to correct
+    if (RCC[THROTTLE].read() > 20)
+        Controller_Rate[2].compute(-(RCC[2].read()-500.0)*100.0/500.0, IMU.mpu.Gyro[2]); // give the controller the actual gyro values and get his advice to correct
     else
         Controller_Rate[2].compute(0, IMU.mpu.Gyro[2]); // give the controller the actual gyro values and get his advice to correct
     
-    float throttle = 100 + (RC[THROTTLE].read() * 500 / 1000);
+    float throttle = 100 + (RCC[THROTTLE].read() * 500 / 1000);
     Times[4] = LoopTimer.read(); // 53us
     
     // Mixing
@@ -174,16 +176,18 @@ void loop() {
     
     
     if (debug) {
-        pc.printf("$STATE,%d,%d,%.f,%.3f,%.3f\r\n", armed, level, control_frequency, IMU.dt*1e3, IMU.dt_sensors*1e6);
+        //pc.printf("$STATE,%d,%d,%.f,%.3f,%.3f\r\n", armed, level, control_frequency, IMU.dt*1e3, IMU.dt_sensors*1e6);
         //pc.printf("$RC,%d,%d,%d,%d,%d,%d,%d\r\n", RC[AILERON].read(), RC[ELEVATOR].read(), RC[RUDDER].read(), RC[THROTTLE].read(), RC[CHANNEL6].read(), RC[CHANNEL7].read(), RC[CHANNEL8].read());
-        pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
-        pc.printf("$GYRO2,%.3f,%.3f,%.3f\r\n", IMU.mpu2.data_gyro[ROLL], IMU.mpu2.data_gyro[PITCH], IMU.mpu2.data_gyro[YAW]);
+        //pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
+        //pc.printf("$GYRO2,%.3f,%.3f,%.3f\r\n", IMU.mpu2.data_gyro[ROLL], IMU.mpu2.data_gyro[PITCH], IMU.mpu2.data_gyro[YAW]);
         //pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.mpu.Acc[ROLL], IMU.mpu.Acc[PITCH], IMU.mpu.Acc[YAW]);
-        pc.printf("$ANG,%.3f,%.3f,%.3f\r\n", IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW]);
+        //pc.printf("$ANG,%.3f,%.3f,%.3f\r\n", IMU.angle[ROLL], IMU.angle[PITCH], IMU.angle[YAW]);
         //pc.printf("$RCANG,%.3f,%.3f,%.3f\r\n", RC_angle[ROLL], RC_angle[PITCH], RC_angle[YAW]);
-        pc.printf("$CONTR,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Rate[ROLL].Value, Controller_Rate[PITCH].Value, Controller_Rate[YAW].Value, P_R, I_R, D_R, PY);
-        pc.printf("$CONTA,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Angle[ROLL].Value, Controller_Angle[PITCH].Value, Controller_Angle[YAW].Value, P_A, I_A, D_A);
-        pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
+        //pc.printf("$CONTR,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Rate[ROLL].Value, Controller_Rate[PITCH].Value, Controller_Rate[YAW].Value, P_R, I_R, D_R, PY);
+        //pc.printf("$CONTA,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Angle[ROLL].Value, Controller_Angle[PITCH].Value, Controller_Angle[YAW].Value, P_A, I_A, D_A);
+        //pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
+    	pc.printf("OFFSET,%.3f,%.3f,%.3f,%.3f\r\n", RCC[0].offset, RCC[1].offset, RCC[2].offset, RCC[3].offset);
+    	pc.printf("SCALE,%.3f,%.3f,%.3f,%.3f\r\n", RCC[0].scale, RCC[1].scale, RCC[2].scale, RCC[3].scale);
         /*pc.printf("$TIMES");
         for(int i = 1; i < 10; i++)
             pc.printf(",%.3f", (Times[i]-Times[i-1])*1e6);
