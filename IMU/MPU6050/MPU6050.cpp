@@ -38,12 +38,10 @@ void MPU6050::read()
         data_acc[i] = raw_acc[i] - offset_acc[i];           // TODO: didn't care about units because IMU-algorithm just uses vector direction
 
     // I have to swich coordinates on my board to match the ones of the other sensors (clear this part if you use the raw coordinates of the sensor)
-    float tmp = 0;
-    tmp = data_gyro[0];
     data_gyro[0] = -data_gyro[0];
     data_gyro[1] = -data_gyro[1];
     data_gyro[2] = data_gyro[2];
-    tmp = data_acc[0];
+
     data_acc[0] = -data_acc[0];
     data_acc[1] = -data_acc[1];
     data_acc[2] = data_acc[2];
