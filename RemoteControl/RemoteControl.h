@@ -14,7 +14,7 @@
 class RemoteControl {
 public:
 	RemoteControl();
-protected:
+//protected:
 	vector<RC_Channel> _channels;
 };
 
