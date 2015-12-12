@@ -8,14 +8,19 @@
 #ifndef REMOTECONTROL_H_
 #define REMOTECONTROL_H_
 
-#include "RC_Channel.h"
 #include <vector>
+#include "RC_Channel.h"
+#include "ParameterSystem.h"
 
 class RemoteControl {
 public:
 	RemoteControl();
-//protected:
-	vector<RC_Channel> _channels;
+
+	float getValueCalibrated(int i);
+	inline float operator[](int i) {return getValueCalibrated(i);}
+//private:
+	ParameterSystem		_params;
+	RC_Channel			_channels[7];
 };
 
 #endif

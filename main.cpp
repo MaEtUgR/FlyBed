@@ -9,8 +9,7 @@
 #include "PC.h"         // Serial Port via USB by Roland Elmiger for debugging with Terminal (driver needed: https://mbed.org/media/downloads/drivers/mbedWinSerial_16466.exe)
 
 #include "IMU_10DOF.h"  // Complete IMU class for 10DOF-Board (L3G4200D, ADXL345, HMC5883, BMP085)
-#include "RemoteControl.h"
-#include "RC_Channel.h" // RemoteControl Channels with PPM
+#include "RemoteControl.h"       // RemoteControl Channels with PPM
 #include "PID.h"        // PID Library (slim, self written)
 #include "Servo.h"      // Motor PPM using any DigitalOut Pin
 
@@ -176,7 +175,7 @@ void loop() {
     
     if (debug) {
         //pc.printf("$STATE,%d,%d,%.f,%.3f,%.3f\r\n", armed, level, control_frequency, IMU.dt*1e3, IMU.dt_sensors*1e6);
-        //pc.printf("$RC,%d,%d,%d,%d,%d,%d,%d\r\n", RC[AILERON].read(), RC[ELEVATOR].read(), RC[RUDDER].read(), RC[THROTTLE].read(), RC[CHANNEL6].read(), RC[CHANNEL7].read(), RC[CHANNEL8].read());
+        pc.printf("$RC2,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n", RC[AILERON], RC[ELEVATOR], RC[RUDDER], RC[THROTTLE], RC[CHANNEL6], RC[CHANNEL7], RC[CHANNEL8]);
         //pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
         //pc.printf("$GYRO2,%.3f,%.3f,%.3f\r\n", IMU.mpu2.data_gyro[ROLL], IMU.mpu2.data_gyro[PITCH], IMU.mpu2.data_gyro[YAW]);
         //pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.mpu.Acc[ROLL], IMU.mpu.Acc[PITCH], IMU.mpu.Acc[YAW]);
