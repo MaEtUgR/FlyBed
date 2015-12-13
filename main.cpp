@@ -17,13 +17,6 @@
 #define INTEGRAL_MAX    300     // maximal output offset that can result from integrating errors
 #define RC_SENSITIVITY  30      // maximal angle from horizontal that the PID is aming for
 #define YAWSPEED        1.0     // maximal speed of yaw rotation in degree per Rate
-#define AILERON         0       // RC
-#define ELEVATOR        1
-#define RUDDER          2
-#define THROTTLE        3
-#define CHANNEL8        4
-#define CHANNEL7        5
-#define CHANNEL6        6
 #define ROLL            0       // Axes
 #define PITCH           1
 #define YAW             2
@@ -184,8 +177,8 @@ void loop() {
         //pc.printf("$CONTR,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Rate[ROLL].Value, Controller_Rate[PITCH].Value, Controller_Rate[YAW].Value, P_R, I_R, D_R, PY);
         //pc.printf("$CONTA,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n", Controller_Angle[ROLL].Value, Controller_Angle[PITCH].Value, Controller_Angle[YAW].Value, P_A, I_A, D_A);
         //pc.printf("$MOT,%d,%d,%d,%d\r\n", (int)Motor_speed[0], (int)Motor_speed[1], (int)Motor_speed[2], (int)Motor_speed[3]);
-    	pc.printf("OFFSET,%.3f,%.3f,%.3f,%.3f\r\n", RC._channels[0].offset, RC._channels[1].offset, RC._channels[2].offset, RC._channels[3].offset);
-    	pc.printf("SCALE,%.3f,%.3f,%.3f,%.3f\r\n", RC._channels[0].scale, RC._channels[1].scale, RC._channels[2].scale, RC._channels[3].scale);
+        pc.printf("OFFSET,%.3f,%.3f,%.3f,%.3f\r\n", RC._channels[0]._offset, RC._channels[1]._offset, RC._channels[2]._offset, RC._channels[3]._offset);
+        pc.printf("SCALE,%.3f,%.3f,%.3f,%.3f\r\n", RC._channels[0]._scale, RC._channels[1]._scale, RC._channels[2]._scale, RC._channels[3]._scale);
         /*pc.printf("$TIMES");
         for(int i = 1; i < 10; i++)
             pc.printf(",%.3f", (Times[i]-Times[i-1])*1e6);
