@@ -25,12 +25,13 @@ public:
 	inline float getParameter(int i) {return _parameters[i];}		// using parameters from RAM
 	inline float operator[](int i) {return getParameter(i);}
 
-	inline void setParameter(int i, float v) {_parameters[i] = v;}	// changing parameters in RAM
-	inline int size() {return _parameters.size();}
-protected:
-	LocalFileSystem _localFileSystem;								// object needed to get the mbed boards flash memory "mounted"
-	string _filename;												// for binary directly the filename for ASCII filename.txt
-	vector<float> _parameters;										// parameter data in RAM
+	inline void	setParameter(int i, float v) {_parameters[i] = v;}	// changing parameters in RAM
+	inline int	size() {return _parameters.size();}
+	inline void resize(int i) {_parameters.resize(i);}
+private:
+	LocalFileSystem	_localFileSystem;								// object needed to get the mbed boards flash memory "mounted"
+	string			_filename;										// for binary directly the filename for ASCII filename.txt
+	vector<float>	_parameters;									// parameter data in RAM
 };
 
 #endif

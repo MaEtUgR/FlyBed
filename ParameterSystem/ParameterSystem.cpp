@@ -14,7 +14,7 @@ ParameterSystem::ParameterSystem(string filename) :
 
 void ParameterSystem::writeBinaryFile() {
 	FILE *fp = fopen(("/local/" + _filename).c_str(), "w");
-	if(!fp) return;
+	if(!fp) return; // TODO: better error handling
 	for(vector<float>::iterator it = _parameters.begin(); it != _parameters.end(); it++)
 		fwrite(&*it, sizeof(float), 1, fp);
 	fclose(fp);
@@ -22,7 +22,7 @@ void ParameterSystem::writeBinaryFile() {
 
 void ParameterSystem::readBinaryFile() {
 	FILE *fp = fopen(("/local/" + _filename).c_str(), "r");
-	if(!fp) return;
+	if(!fp) return; // TODO: better error handling
 	_parameters.clear();
 	float input;
 	while(fread(&input, sizeof(input), 1, fp))
@@ -32,7 +32,7 @@ void ParameterSystem::readBinaryFile() {
 
 void ParameterSystem::writeASCIIFile() {
 	FILE *fp = fopen(("/local/" + _filename + ".txt").c_str(), "w");
-	if(!fp) return;
+	if(!fp) return; // TODO: better error handling
 	for(vector<float>::iterator it = _parameters.begin(); it != _parameters.end(); it++)
 		fprintf(fp, "%f\r\n", *it);
 	fclose(fp);
@@ -40,7 +40,7 @@ void ParameterSystem::writeASCIIFile() {
 
 void ParameterSystem::readASCIIFile() {
 	FILE *fp = fopen(("/local/" + _filename + ".txt").c_str(), "r");
-	if(!fp) return;
+	if(!fp) return; // TODO: better error handling
 	_parameters.clear();
 	float input;
 	while(fscanf(fp, "%f", &input) > 0)
