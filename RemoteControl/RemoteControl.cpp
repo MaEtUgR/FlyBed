@@ -8,8 +8,8 @@
 #include "../RemoteControl/RemoteControl.h"
 
 RemoteControl::RemoteControl() :
-	_params("RemoteControl"),
-	_channels({RC_Channel(p8), RC_Channel(p15), RC_Channel(p17), RC_Channel(p16), RC_Channel(p25), RC_Channel(p26), RC_Channel(p29)})
+	_channels({RC_Channel(p8), RC_Channel(p15), RC_Channel(p17), RC_Channel(p16), RC_Channel(p25), RC_Channel(p26), RC_Channel(p29)}),
+	_params("RC")
 {
 	_stickCentring = false;
 
@@ -18,36 +18,41 @@ RemoteControl::RemoteControl() :
 		_params.resize(CHANNELS * 2);
 
 		for(int i = 0; i < CHANNELS; i++) // set all offsets to zero
-			_params[i] = 0;
+			_params.setParameter(i, 0);
 
 		for(int i = CHANNELS; i < CHANNELS*2; i++) // set all scales to 1
-			_params[i] = 1;
+			_params.setParameter(i, 1);
 	}
 }
 
 float RemoteControl::getValueCalibrated(int i) {
-	float calibratedValue = (float)(_channels[i].read() + _params[i]) * _params[CHANNELS + i];
+	float calibratedValue = (_channels[i].read() + _params[i]) * _params[CHANNELS + i];
 	if(_stickCentring && i != THROTTLE && 490 < calibratedValue && calibratedValue < 510)
 		calibratedValue = 500;
 	return calibratedValue;
 }
 
 void RemoteControl::calibrate(int seconds) {
-	int min[CHANNELS];
-	int max[CHANNELS];
+	int mins[CHANNELS];
+	int maxs[CHANNELS];
+	fill(mins, mins+CHANNELS-1, 1000);
+	fill(maxs, maxs+CHANNELS-1, 0);
 	Timer calibrationTimer;
 	calibrationTimer.start();
 
 	while(calibrationTimer.read() < seconds)
 		for(int i = 0; i < CHANNELS; i++) {
 			int value = _channels[i].read();
-			min[i] = value < min[i] ? value : min[i];
-			max[i] = value > max[i] ? value : max[i];
+			printf("%d ", value);
+			if(i == CHANNELS-1)
+				printf("\r\n");
+			mins[i] = min(mins[i], value);
+			maxs[i] = max(maxs[i], value);
 		}
 
 	for(int i = 0; i < CHANNELS; i++) {
-		_params[i] = -min[i]; // get the offset
-		_params[CHANNELS + i] = 1000/(float)(max[i]-min[i]); // get the scale
+		_params.setParameter(i, -mins[i]); // get the offset	TODO: setParameter with operator overloading params[i] = v;
+		_params.setParameter(CHANNELS + i, 1000/(float)(maxs[i]-mins[i])); // get the scale
 	}
 
 	_params.writeASCIIFile(); // safe the calibration

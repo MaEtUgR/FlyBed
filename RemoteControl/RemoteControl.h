@@ -8,7 +8,7 @@
 #ifndef REMOTECONTROL_H_
 #define REMOTECONTROL_H_
 
-#include <vector>
+#include "mbed.h"
 #include "RC_Channel.h"
 #include "ParameterSystem.h"
 

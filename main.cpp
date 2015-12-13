@@ -32,6 +32,7 @@ float P_A = 1.9, I_A = 0.2, D_A = 0;        // PID values for the angle controll
 float PY = 2.3, IY = 0, DY = 0;         // PID values for Yaw
 float RC_angle[] = {0,0,0};             // Angle of the RC Sticks, to steer the QC
 float Motor_speed[4] = {0,0,0,0};       // Mixed Motorspeeds, ready to send
+bool toRCCalibrate = false;
 
 Timer LoopTimer;
 float Times[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -60,7 +61,7 @@ void loop() {
     // Arming / disarming
     RC_present = !(RC._channels[AILERON].read() == -100 || RC._channels[ELEVATOR].read() == -100 || RC._channels[RUDDER].read() == -100 || RC._channels[THROTTLE].read() == -100); // TODO: Failsafe
     if(RC._channels[THROTTLE].read() < 20 && RC._channels[RUDDER].read() > 850) {
-        armed = true;
+        //armed = true;
         RC_angle[YAW] = IMU.angle[YAW];
     }
     if((RC._channels[THROTTLE].read() < 30 && RC._channels[RUDDER].read() < 30) || !RC_present) {
@@ -165,10 +166,18 @@ void loop() {
     LoopTimer.stop();
     LoopTimer.reset();
     
+    if(toRCCalibrate) {
+    	toRCCalibrate = false;
+    	LEDs.shownumber(0xF);
+    	RC.calibrate(10);
+    	LEDs.rollreset();
+    }
+
     
+
     if (debug) {
         //pc.printf("$STATE,%d,%d,%.f,%.3f,%.3f\r\n", armed, level, control_frequency, IMU.dt*1e3, IMU.dt_sensors*1e6);
-        pc.printf("$RC2,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n", RC[AILERON], RC[ELEVATOR], RC[RUDDER], RC[THROTTLE], RC[CHANNEL6], RC[CHANNEL7], RC[CHANNEL8]);
+        pc.printf("$RC,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n", RC[AILERON], RC[ELEVATOR], RC[RUDDER], RC[THROTTLE], RC[CHANNEL6], RC[CHANNEL7], RC[CHANNEL8]);
         //pc.printf("$GYRO,%.3f,%.3f,%.3f\r\n", IMU.mpu.Gyro[ROLL], IMU.mpu.Gyro[PITCH], IMU.mpu.Gyro[YAW]);
         //pc.printf("$GYRO2,%.3f,%.3f,%.3f\r\n", IMU.mpu2.data_gyro[ROLL], IMU.mpu2.data_gyro[PITCH], IMU.mpu2.data_gyro[YAW]);
         //pc.printf("$ACC,%.3f,%.3f,%.3f\r\n", IMU.mpu.Acc[ROLL], IMU.mpu.Acc[PITCH], IMU.mpu.Acc[YAW]);
@@ -241,6 +250,10 @@ void executer() {
     if (command == 'l') {
         control_frequency -= 100;
         
+    }
+
+    if (command == '?') {
+    	toRCCalibrate = true;
     }
         
         
