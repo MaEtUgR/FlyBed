@@ -13,6 +13,7 @@ class LED {
         void ride(int times);
         void roll(int times);
         void rollnext();
+        void rollreset();
         void tilt(int index);
         void set(int index);
         void reset(int index);

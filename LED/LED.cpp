@@ -39,6 +39,11 @@ void LED::rollnext() {
     tilt(roller);
 }
 
+void LED::rollreset() {
+	shownumber(0);
+	roller = 0;
+}
+
 void LED::tilt(int index) {
     Led = Led ^ (1 << (index-1)); //XOR
 }
