@@ -13,6 +13,8 @@ RemoteControl::RemoteControl() :
 {
 	_armed = true;
 	_stickCentring = true;
+	for(int i = 0; i < 3; i++)
+		_angle[i] = 0;
 
 	_params.readASCIIFile();
 	if (_params.size() != CHANNELS * 2) {
@@ -26,13 +28,8 @@ RemoteControl::RemoteControl() :
 	}
 }
 
-void RemoteControl::run() {
-	if(getValue(THROTTLE) < 20 && getValue(RUDDER) > 850) {
-		_armed = true;
-	}
-	if((getValue(THROTTLE) < 30 && getValue(RUDDER) < 30) || !present()) {
-		_armed = false;
-	}
+bool RemoteControl::present() {
+	return (_channels[AILERON].present() && _channels[ELEVATOR].present() && _channels[RUDDER].present() && _channels[THROTTLE].present());
 }
 
 float RemoteControl::getValue(int i) {
@@ -42,6 +39,30 @@ float RemoteControl::getValue(int i) {
 		calibratedValue = 500;
 
 	return _channels[i].present() ? calibratedValue : -100;
+}
+
+void RemoteControl::run(float IMU_yaw) {
+	if(getValue(THROTTLE) < 20 && getValue(RUDDER) > 850) {					// arming / disarming
+		_armed = true;
+		_angle[2] = IMU_yaw;
+	}
+	if((getValue(THROTTLE) < 30 && getValue(RUDDER) < 30) || !present())
+		_armed = false;
+
+	for(int i=0;i<2;i++)													// RC Angle ROLL-PITCH-Part
+		if (present())
+			_angle[i] = (getValue(i)-500)*RC_SENSITIVITY/500.0;
+		else
+			_angle[i] = 0;
+
+	float yaw_adding;                  										// RC Angle YAW-Part
+	if (present() && getValue(THROTTLE) > 20)
+		yaw_adding = -(getValue(RUDDER)-500)*YAWSPEED/500;					// the yaw angle is integrated from stick input		TODO: make this independent of loop frequency
+	else
+		yaw_adding = 0;
+
+	_angle[2] = _angle[2] + yaw_adding < -180 ? _angle[2] + 360 + yaw_adding : _angle[2] + yaw_adding; // make shure it's in the cycle -180 to 180
+	_angle[2] = _angle[2] + yaw_adding > 180 ? _angle[2] - 360 + yaw_adding : _angle[2] + yaw_adding;
 }
 
 void RemoteControl::calibrate(int seconds) {
