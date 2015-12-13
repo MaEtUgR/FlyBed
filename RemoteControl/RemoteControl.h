@@ -26,12 +26,16 @@ class RemoteControl {
 public:
 	RemoteControl();
 
-	float getValueCalibrated(int i);
-	inline float operator[](int i) {return getValueCalibrated(i);}
+	void run();
+	inline bool armed() {return _armed;}
+	float getValue(int i);
+	inline float operator[](int i) {return getValue(i);}
+	inline bool present() {return (_channels[AILERON].present() && _channels[ELEVATOR].present() && _channels[RUDDER].present() && _channels[THROTTLE].present());};  // shows if remote control is working	TODO: Failsafe
 	void enableStickCentering() {_stickCentring = true;}
 	void calibrate(int seconds);
 //private:
 	RC_Channel			_channels[CHANNELS];
+	bool				_armed;  // is for safety (when false no motor should rotate any more!)
 	ParameterSystem		_params;
 	bool				_stickCentring;
 };

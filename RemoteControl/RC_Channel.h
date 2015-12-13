@@ -3,16 +3,14 @@
 
 #include "mbed.h"
 
-class RC_Channel
-{
+class RC_Channel {
     public:
         RC_Channel(PinName mypin);	// NO p19/p20!!!!, they don't support InterruptIn
         int read();					// read the last measured data
+        bool present() {return !(read() == -100);}
        
     //private:
         int _time;					// last measurement data
-        float _scale;				// calibration values
-        float _offset;
         
         InterruptIn _interrupt;		// interrupt on the pin to react when signal falls or rises
         void rise();				// start the time measurement when signal rises
