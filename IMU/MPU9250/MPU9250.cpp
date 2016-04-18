@@ -5,6 +5,14 @@ MPU9250::MPU9250(PinName MOSI, PinName MISO, PinName SCLK, PinName CS) : spi(MOS
     spi.format(8,0);                    // setup the spi for standard 8 bit data and SPI-Mode 0
     spi.frequency(5e6);                 // with a 5MHz clock rate
     
+    writeRegister8(MPU9250_PWR_MGMT_1, 0x80);
+    wait_ms(100);
+    writeRegister8(MPU9250_SMPLRT_DIV, 0x00);
+    writeRegister8(MPU9250_PWR_MGMT_1, 0x03);
+    wait_ms(15);
+    writeRegister8(MPU9250_CONFIG, 0x00);
+    writeRegister8(MPU9250_GYRO_CONFIG, 3 << 3);
+
     /*
     last 3 Bits of|Accelerometer(Fs=1kHz) |Gyroscope 
     MPU9250_CONFIG|Bandwidth(Hz)|Delay(ms)|Bandwidth(Hz)|Delay(ms)|Fs(kHz)
@@ -17,9 +25,9 @@ MPU9250::MPU9250(PinName MOSI, PinName MISO, PinName SCLK, PinName CS) : spi(MOS
     5             |10           |13.8     |10           |13.4     |1 
     6             |5            |19.0     |5            |18.6     |1 
     */
-    writeRegister8(MPU9250_CONFIG, 0x00);
+    /*writeRegister8(MPU9250_CONFIG, 0x00);
     writeRegister8(MPU9250_GYRO_CONFIG, 0x18);              // scales gyros range to +-2000dps
-    writeRegister8(MPU9250_ACCEL_CONFIG, 0x08);             // scales accelerometers range to +-4g
+    writeRegister8(MPU9250_ACCEL_CONFIG, 0x08);*/             // scales accelerometers range to +-4g
 }
 
 uint8_t MPU9250::getWhoami() {

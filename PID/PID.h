@@ -5,7 +5,7 @@
 
 #include "mbed.h"
 
-#define BUFFERSIZE 5
+#define BUFFERSIZE 10
 
 class PID {
     public:
